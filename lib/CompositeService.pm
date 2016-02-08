@@ -129,17 +129,17 @@ use NeotomaInterface;
     # Configuration. This path is used by clients who need to configure themselves
     # based on parameters supplied by the data service.
     
-    $ds0->define_node({ path => 'config',
-			place => 10,
-			title => 'Client configuration',
-			usage => [ "config.json?show=all",
-			 	   "config.txt?show=taxagroups" ],
-			role => 'ConfigData',
-			method => 'get',
-			optional_output => '1.0:config:config_map' },
-	"This class provides information about the structure, encoding and organization",
-	"of the information in the database. It is designed to enable the easy",
-	"configuration of client applications.");
+    # $ds0->define_node({ path => 'config',
+    # 			place => 10,
+    # 			title => 'Client configuration',
+    # 			usage => [ "config.json?show=all",
+    # 			 	   "config.txt?show=taxagroups" ],
+    # 			role => 'ConfigData',
+    # 			method => 'get',
+    # 			optional_output => '1.0:config:config_map' },
+    # 	"This class provides information about the structure, encoding and organization",
+    # 	"of the information in the database. It is designed to enable the easy",
+    # 	"configuration of client applications.");
     
     # Occurrences.  These paths are used to fetch information about fossil
     # occurrences known to the database.
@@ -147,6 +147,8 @@ use NeotomaInterface;
     $ds0->define_node({ path => 'occs',
 			place => 1,
 			title => 'Fossil occurrences',
+			usage => [ 'occs/list.txt?base_name=Canis&show=loc&vocab=pbdb',
+				   'occs/single.json?occ_id=pbdb:occ:10245&vocab=neotoma' ],
 			role => 'CompositeData',
 			allow_format => '+xml' },
 	"A fossil occurence represents the occurrence of a particular organism at a particular",
@@ -170,7 +172,7 @@ use NeotomaInterface;
 		       method => 'occs_single',
 		       output => '1.0:occs:basic',
 		       optional_output => '1.0:occs:basic_map',
-		       usage => [ 'occs/list.json?ds=pbdb&occ_id=10245' ] },
+		       usage => [ 'occs/single.json?occ_id=pbdb:occ:10245&vocab=neotoma' ] },
 	"This operation returns information about a single fossil occurrence",
 	"from one of the underlying databases.");
     

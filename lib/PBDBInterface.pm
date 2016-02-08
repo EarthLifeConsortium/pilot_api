@@ -250,6 +250,92 @@ sub subquery_occs_list {
 }
 
 
+sub subquery_occs_single {
+
+    my ($subservice, $request) = @_;
+    
+    my @params;
+    
+    # First check for the occ_id && ds parameters
+    
+    if ( ref $request->{ds_hash} eq 'HASH' )
+    {
+	return unless $request->{ds_hash}{pbdb};
+    }
+    
+    my @occ_ids = $request->clean_param_list('occ_id');
+    
+    my @pbdb_ids;
+    
+    foreach my $id ( @occ_ids )
+    {
+	if ( ref $id eq 'Composite::ExtIdent' )
+	{
+	    if ( $id->{domain} eq 'pbdb' || ( $id->{domain} eq '' &&
+					      $request->{ds_single} eq 'pbdb' ) )
+	    {
+		if ( $id->{type} eq 'occ' || $id->{type} eq '' || $id->{type} eq 'unk' )
+		{
+		    push @pbdb_ids, "occ:$id->{num}";
+		}
+		
+		else
+		{
+		    $request->add_warning("Invalid object type '$id->{type}' for parameter " .
+					  "'occ_id': must be 'occ' to indicate a PaleoBioDB occurrence.");
+		}
+	    }
+	}
+	
+	elsif ( ! ref $id && $id > 0 && $request->{ds_single} eq 'pbdb' )
+	{
+	    push @pbdb_ids, $id;
+	}
+	
+	elsif ( defined $id && $id ne '' )
+	{
+	    $request->add_warning("Invalid identifier '$id' for parameter 'occ_id'");
+	}
+    }
+    
+    # If we have at least one valid PaleoBioDB occurrence id, add that
+    # parameter to the query.
+    
+    if ( @pbdb_ids )
+    {
+	my $id_list = join(',', @pbdb_ids);
+	push @params, "occ_id=$id_list";
+    }
+    
+    # Otherwise return false, since there will be no matching records from
+    # the PaleoBioDB.
+    
+    else
+    {
+	return;
+    }
+    
+    # Then add other necessary parameters:
+    
+    push @params, "vocab=pbdb";
+    push @params, "show=loc,coords" if $request->has_block('loc');
+    
+    # Create the necessary objects to execute a query on the PaleoBioDB and
+    # parse the results.
+    
+    my $json_parser = JSON::SL->new(10);
+    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+    
+    my $url = $request->ds->config_value('pbdb_base') . 'occs/list.json?';
+    $url .= join('&', @params);
+    
+    my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
+					      request => $request );
+    
+    return $subquery;
+}
+
+
 sub process_occs_list {
     
     my $subquery = shift;
