@@ -455,8 +455,7 @@ sub occs_list {
 	$request->add_result(@raw);
     }
     
-    my $a = 1;	# we can stop here when debugging
-    
+    my $a = 1;	# we can stop here when debugging    
 }
 
 
@@ -468,7 +467,161 @@ sub occs_single {
 
     my ($request) = @_;
     
+    # Do some initial parameter checking.
     
+    unless ( defined $request->{output_vocab} && $request->{output_vocab} ne '' &&
+	     $request->{output_vocab} ne 'null' )
+    {
+	die "400 You must specify a vocabulary using the 'vocab' parameter.\n";
+    }
+    
+    $request->ds_param();    
+    
+    # First create URLs for the various constituent services, based on the
+    # parameters given to this operation.
+    
+    my (%url, %obj, @raw, @subqueries, %status, %reason, %pending);
+    
+    my $ds = $request->ds;
+    # my @constituents = ;
+    
+    # We loop over the available constituent modules.  For each one which can
+    # do the 'make_occs_list' method, we generate a subquery object. This
+    # method generates the appropriate URL for the subquery.
+    
+    foreach my $subservice ( @CompositeService::SERVICES )
+    {
+	if ( $subservice->can('subquery_occs_single') )
+	{
+	    my $subquery = $subservice->subquery_occs_single($request);
+	    
+	    if ( $subquery )
+	    {
+		push @subqueries, $subquery;
+		$ds->debug_line("Generated subquery for $subquery->{label}: $subquery->{url}");
+	    }
+	}
+    }
+    
+    # Now fire off each of these subqueries and collect up the
+    # results. We start by setting up a condition variable that will be
+    # triggered when all of the queries are finished, and a timer which will
+    # trigger that condition variable if the overall timeout expires.
+    
+    my $subquery_condition = AnyEvent->condvar;
+    
+    my $fallback = AnyEvent->timer (
+	after => $CompositeService::TIMEOUT,
+        cb => sub { $subquery_condition->send("TIMEOUT"); } );
+    
+    # We then call 'begin' on this condition variable, according to the
+    # AnyEvent documentation: https://metacpan.org/pod/AnyEvent#METHODS FOR PRODUCERS
+    # This will increment a counter associated with the condition
+    # variable, and is matched by the 'end' that comes after the subquery
+    # loop.
+    
+    $subquery_condition->begin;
+    
+    # We now loop over the list of subquery objects. We fire off each query using
+    # AnyEvent::HTTP, with callbacks to process the result data as it comes
+    # in. We do this on a chunk-by-chunk basis, because the subquery results
+    # may be very long. We are planning for future development in which we may want to
+    # send the results back to the client as they are received rather than
+    # collecting them all up and processing them together.
+    
+    foreach my $sq (@subqueries)
+    {
+	my $url = $sq->{url};
+	next unless $url;
+	
+	my $label = $sq->{label};
+	
+	# We call 'begin' for each subquery, which will increment the counter
+	# associated with the condition variable.
+	
+	$subquery_condition->begin;
+	
+	# Initiate each query, with two callbacks. The first handles each
+	# chunk of incoming data, and the second is called on query
+	# completion. This second callback in turn calls 'end' on the subquery
+	# condition variable, which decrements the counter to indicate
+	# completion of this query. The first argument passed to each callback
+	# holds body data, which is passed to the process_occs_list routine.
+	
+	$sq->{subrequest} =
+	http_request ( GET => $url,
+		       on_body => 
+		       sub { push @raw, $sq->process_occs_list($request, $_[0]);
+		       	     # $ds->debug_line("GOT CHUNK: $label");
+			     # $ds->debug_line($_[0]);
+			     return 1;
+			 },
+		       sub { my ($body, $headers) = @_;
+			     $ds->debug_line("COMPLETE: $label");
+			     # $ds->debug_line($body) if $body;
+			     $status{$label} //= $headers->{Status};
+			     $reason{$label} //= $headers->{Reason};
+			     push @raw, $sq->process_occs_list($request, $body)
+				 if defined $body && $body ne '';
+			     $subquery_condition->end; } );
+    }
+    
+    # Finally, we call 'end' on the condition variable to balance the initial
+    # call to 'begin'.  At this point, whenever all of the subqueries
+    # complete, the counter will return to zero and the condition variable
+    # will be automatically signaled.
+    
+    $subquery_condition->end;
+    
+    # The following call will block until the condition variable is signaled
+    # when the final query completes (or alternatively when the fallback
+    # timeout expires).
+    
+    my $event = $subquery_condition->recv;
+    
+    # At this point, we have the results of all subqueries. Unless, that is,
+    # the fallback timeout expired in which case we have all of the results
+    # that we are going to get...
+    
+    my $count = @raw;
+    # $ds->debug_line("Found $count results");
+    # $ds->debug_line("Event = $event") if $event;
+    
+    # If any of the queries returned a status code indicating non-success,
+    # then add a warning to our result.
+    
+    foreach my $name ( keys %status )
+    {
+	if ( $status{$name} !~ /^2\d\d/ )
+	{
+	    $ds->debug_line("Status $name: $status{$name} $reason{$name}");
+	    $request->add_warning("Error received from $name: $status{$name} $reason{$name}");
+	}
+    }
+    
+    # If we are running in debug mode, report how many records we received and
+    # how many were filtered out.
+    
+    if ( $request->{pbdb_count} )
+    {
+	$ds->debug_line("FOUND PBDB: $request->{pbdb_count} records");
+    }
+    
+    if ( $request->{neotoma_count} )
+    {
+	$ds->debug_line("FOUND NEOTOMA: $request->{neotoma_count} records");
+    }
+    
+    # Process ages and other fields
+    
+    foreach my $r (@raw)
+    {
+	$request->process_one_record($r);
+    }
+    
+    $request->add_result(@raw);
+    
+    my $a = 1;	# we can stop here when debugging
 }
 
 

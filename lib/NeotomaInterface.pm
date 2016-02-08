@@ -217,6 +217,89 @@ sub subquery_occs_list {
 }
 
 
+sub subquery_occs_single {
+
+    my ($subservice, $request) = @_;
+    
+    my @params;
+    
+   # First check for the occ_id && ds parameters
+    
+    if ( ref $request->{ds_hash} eq 'HASH' )
+    {
+	return unless $request->{ds_hash}{neotoma};
+    }
+    
+    my @occ_ids = $request->clean_param_list('occ_id');
+    
+    my @neotoma_ids;
+    
+    foreach my $id ( @occ_ids )
+    {
+	if ( ref $id eq 'Composite::ExtIdent' )
+	{
+	    if ( $id->{domain} eq 'neotoma' || ( $id->{domain} eq '' &&
+						 $request->{ds_single} eq 'neotoma' ) )
+	    {
+		if ( $id->{type} eq 'occ' || $id->{type} eq '' || $id->{type} eq 'unk' )
+		{
+		    push @neotoma_ids, $id->{num};
+		}
+		
+		else
+		{
+		    $request->add_warning("Invalid object type '$id->{type}' for parameter " .
+					  "'occ_id': must be 'occ' to indicate a Neotoma occurrence.");
+		}
+	    }
+	}
+	
+	elsif ( ! ref $id && $id > 0 && $request->{ds_single} eq 'neotoma' )
+	{
+	    push @neotoma_ids, $id;
+	}
+	
+	elsif ( defined $id && $id ne '' )
+	{
+	    $request->add_warning("Invalid identifier '$id' for parameter 'occ_id'");
+	}
+    }
+    
+    # If we found valid neotoma identifiers, then add the specified
+    # parameter. 
+    
+    if ( @neotoma_ids )
+    {
+	my $id_list = join(',', @neotoma_ids);
+	push @params, "occurid=$id_list";
+    }
+    
+    # If we did not find any, also return false. In either of these cases,
+    # there will be no matching records from the Neotoma database.
+    
+    else
+    {
+	return;
+    }
+    
+    # Create the necessary objects to execute a query on the Neotoma database
+    # and parse the results.
+    
+    my $json_parser = JSON::SL->new(10);
+    $json_parser->set_jsonpointer(["/success", "/message", "/data/^"]);
+    # $json_parser->noqstr(1);
+    # $json_parser->nopath(1);
+    
+    my $url = $request->ds->config_value('neotoma_base') . 'occurrences?';
+    $url .= join('&', @params);
+    
+    my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
+					      request => $request );
+    
+    return $subquery;
+}
+
+
 sub process_occs_list {
     
     my $subquery = shift;
