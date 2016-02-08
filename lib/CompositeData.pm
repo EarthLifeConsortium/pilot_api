@@ -437,7 +437,7 @@ sub occs_list {
     
     foreach my $r (@raw)
     {
-	$request->process_record($r);
+	$request->process_one_record($r);
     }
     
     # If we were requested to sort the results, do so now.
@@ -843,7 +843,7 @@ my %neotoma_ids = (OccurID => 'OCC',
 		   DatasetID => 'DST');
 			 
 
-sub process_record {
+sub process_one_record {
 
     my ($request, $record) = @_;
     
