@@ -23,11 +23,16 @@ BEGIN {
     
     set log => 'warning';
     
+    # If the environment variable "DSDEBUG" is true, then pretend that we got
+    # a command-line argument.
+    
     # If we were given a command-line argument, figure out what to do with it.
     
-    if ( defined $ARGV[0] )
+    if ( defined $ARGV[0] || defined $ENV{DSDEBUG} )
     {
-	my $cmd = lc $ARGV[0];
+	my $cmd = '';
+	$cmd = lc $ARGV[0] if $ARGV[0];
+	$cmd ||= 'debug' if $ENV{DSDEBUG};
 	
 	# If the first command-line argument specifies an HTTP method
 	# (i.e. 'get') then set Dancer's apphandler to 'Debug'.  This will
