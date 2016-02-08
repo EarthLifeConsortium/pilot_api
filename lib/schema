@@ -1,0 +1,760 @@
++-----------------------------------+--------------------------+--------------+------+-----+---------+-------+
+| Table name                        | Field                    | Type         | Null | Key | Default | Extra |
++-----------------------------------+--------------------------+--------------+------+-----+---------+-------+
+
+| AgeTypes                          | AgeTypeID                | int(11)      | NO   | PRI |         |       |
+| AgeTypes                          | AgeType                  | varchar(64)  | NO   |     |         |       |
+| AgeTypes                          | Precedence               | int(11)      | YES  |     |         |       |
+| AgeTypes                          | ShortAgeType             | varchar(32)  | YES  |     |         |       |
+| AgeTypes                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| AgeTypes                          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AggregateChronologies             | AggregateChronID         | int(11)      | NO   | PRI |         |       |
+| AggregateChronologies             | AggregateDatasetID       | int(11)      | NO   | MUL |         |       |
+| AggregateChronologies             | AgeTypeID                | int(11)      | NO   | MUL |         |       |
+| AggregateChronologies             | IsDefault                | tinyint(4)   | NO   |     |         |       |
+| AggregateChronologies             | ChronologyName           | varchar(80)  | YES  |     |         |       |
+| AggregateChronologies             | AgeBoundYounger          | int(11)      | YES  |     |         |       |
+| AggregateChronologies             | AgeBoundOlder            | int(11)      | YES  |     |         |       |
+| AggregateChronologies             | Notes                    | longtext     | YES  |     |         |       |
+| AggregateChronologies             | RecDateCreated           | datetime     | NO   |     |         |       |
+| AggregateChronologies             | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AggregateDatasets                 | AggregateDatasetID       | int(11)      | NO   | PRI |         |       |
+| AggregateDatasets                 | AggregateDatasetName     | varchar(255) | NO   |     |         |       |
+| AggregateDatasets                 | AggregateOrderTypeID     | int(11)      | NO   | MUL |         |       |
+| AggregateDatasets                 | Notes                    | longtext     | YES  |     |         |       |
+| AggregateDatasets                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| AggregateDatasets                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AggregateOrderTypes               | AggregateOrderTypeID     | int(11)      | NO   | PRI |         |       |
+| AggregateOrderTypes               | AggregateOrderType       | varchar(64)  | NO   |     |         |       |
+| AggregateOrderTypes               | Notes                    | longtext     | YES  |     |         |       |
+| AggregateOrderTypes               | RecDateCreated           | datetime     | NO   |     |         |       |
+| AggregateOrderTypes               | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AggregateSampleAges               | AggregateDatasetID       | int(11)      | NO   | PRI |         |       |
+| AggregateSampleAges               | AggregateChronID         | int(11)      | NO   | PRI |         |       |
+| AggregateSampleAges               | SampleAgeID              | int(11)      | NO   | PRI |         |       |
+| AggregateSampleAges               | RecDateCreated           | datetime     | NO   |     |         |       |
+| AggregateSampleAges               | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AggregateSamples                  | AggregateDatasetID       | int(11)      | NO   | PRI |         |       |
+| AggregateSamples                  | SampleID                 | int(11)      | NO   | PRI |         |       |
+| AggregateSamples                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| AggregateSamples                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| AnalysisUnits                     | AnalysisUnitID           | int(11)      | NO   | PRI |         |       |
+| AnalysisUnits                     | CollectionUnitID         | int(11)      | NO   | MUL |         |       |
+| AnalysisUnits                     | AnalysisUnitName         | varchar(80)  | YES  |     |         |       |
+| AnalysisUnits                     | Depth                    | double       | YES  |     |         |       |
+| AnalysisUnits                     | Thickness                | double       | YES  |     |         |       |
+| AnalysisUnits                     | FaciesID                 | int(11)      | YES  | MUL |         |       |
+| AnalysisUnits                     | Mixed                    | tinyint(4)   | NO   |     |         |       |
+| AnalysisUnits                     | IGSN                     | varchar(40)  | YES  |     |         |       |
+| AnalysisUnits                     | Notes                    | longtext     | YES  |     |         |       |
+| AnalysisUnits                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| AnalysisUnits                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| CalibrationCurves                 | CalibrationCurveID       | int(11)      | NO   | PRI |         |       |
+| CalibrationCurves                 | CalibrationCurve         | varchar(24)  | NO   |     |         |       |
+| CalibrationCurves                 | PublicationID            | int(11)      | NO   | MUL |         |       |
+| CalibrationCurves                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| CalibrationCurves                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| CalibrationPrograms               | CalibrationProgramID     | int(11)      | NO   | PRI |         |       |
+| CalibrationPrograms               | CalibrationProgram       | varchar(24)  | NO   |     |         |       |
+| CalibrationPrograms               | Version                  | varchar(24)  | YES  |     |         |       |
+| CalibrationPrograms               | RecDateCreated           | datetime     | NO   |     |         |       |
+| CalibrationPrograms               | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlAccuracyDirections    | AccuracyDirectionID      | int(11)      | NO   | PRI |         |       |
+| ChronControlAccuracyDirections    | AccuracyDirection        | varchar(80)  | NO   |     |         |       |
+| ChronControlAccuracyDirections    | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlAccuracyDirections    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlAccuracyDistributions | AccuracyDistributionID   | int(11)      | NO   | PRI |         |       |
+| ChronControlAccuracyDistributions | AccuracyDistribution     | varchar(40)  | NO   |     |         |       |
+| ChronControlAccuracyDistributions | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlAccuracyDistributions | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlAccuracyRanks         | AccuracyRankID           | int(11)      | NO   | PRI |         |       |
+| ChronControlAccuracyRanks         | AccuracyRank             | varchar(255) | NO   |     |         |       |
+| ChronControlAccuracyRanks         | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlAccuracyRanks         | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlPrecisionRanks        | PrecisionRankID          | int(11)      | NO   | PRI |         |       |
+| ChronControlPrecisionRanks        | PrecisionRank            | varchar(255) | NO   |     |         |       |
+| ChronControlPrecisionRanks        | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlPrecisionRanks        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlRanks                 | ChronControlRankID       | int(11)      | NO   | PRI |         |       |
+| ChronControlRanks                 | ChronControlID           | int(11)      | YES  | MUL |         |       |
+| ChronControlRanks                 | AccuracyRankID           | int(11)      | YES  | MUL |         |       |
+| ChronControlRanks                 | AccuracyDirectionID      | int(11)      | YES  | MUL |         |       |
+| ChronControlRanks                 | AccuracyDistributionID   | int(11)      | YES  | MUL |         |       |
+| ChronControlRanks                 | PrecisionRankID          | int(11)      | YES  | MUL |         |       |
+| ChronControlRanks                 | Outlier                  | tinyint(4)   | YES  |     |         |       |
+| ChronControlRanks                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlRanks                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControlTypes                 | ChronControlTypeID       | int(11)      | NO   | PRI |         |       |
+| ChronControlTypes                 | ChronControlType         | varchar(64)  | YES  |     |         |       |
+| ChronControlTypes                 | HigherChronControlTypeID | int(11)      | YES  |     |         |       |
+| ChronControlTypes                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControlTypes                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ChronControls                     | ChronControlID           | int(11)      | NO   | PRI |         |       |
+| ChronControls                     | ChronologyID             | int(11)      | NO   | MUL |         |       |
+| ChronControls                     | ChronControlTypeID       | int(11)      | YES  | MUL |         |       |
+| ChronControls                     | Depth                    | double       | YES  |     |         |       |
+| ChronControls                     | Thickness                | double       | YES  |     |         |       |
+| ChronControls                     | Age                      | double       | YES  |     |         |       |
+| ChronControls                     | AgeLimitYounger          | double       | YES  |     |         |       |
+| ChronControls                     | AgeLimitOlder            | double       | YES  |     |         |       |
+| ChronControls                     | Notes                    | longtext     | YES  |     |         |       |
+| ChronControls                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| ChronControls                     | RecDateModified          | datetime     | NO   |     |         |       |
+| ChronControls                     | AnalysisUnitID           | int(11)      | YES  | MUL |         |       |
+
+| Chronologies                      | ChronologyID             | int(11)      | NO   | PRI |         |       |
+| Chronologies                      | CollectionUnitID         | int(11)      | NO   | MUL |         |       |
+| Chronologies                      | AgeTypeID                | int(11)      | NO   | MUL |         |       |
+| Chronologies                      | ContactID                | int(11)      | YES  | MUL |         |       |
+| Chronologies                      | IsDefault                | tinyint(4)   | NO   |     |         |       |
+| Chronologies                      | ChronologyName           | varchar(80)  | YES  |     |         |       |
+| Chronologies                      | DatePrepared             | date         | YES  |     |         |       |
+| Chronologies                      | AgeModel                 | varchar(80)  | YES  |     |         |       |
+| Chronologies                      | AgeBoundYounger          | int(11)      | YES  |     |         |       |
+| Chronologies                      | AgeBoundOlder            | int(11)      | YES  |     |         |       |
+| Chronologies                      | Notes                    | longtext     | YES  |     |         |       |
+| Chronologies                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| Chronologies                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| CollectionTypes                   | CollTypeID               | int(11)      | NO   | PRI |         |       |
+| CollectionTypes                   | CollType                 | varchar(64)  | YES  |     |         |       |
+| CollectionTypes                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| CollectionTypes                   | RecDateModified          | datetime     | NO   |     |         |       |
+
+| CollectionUnits                   | CollectionUnitID         | int(11)      | NO   | PRI |         |       |
+| CollectionUnits                   | Handle                   | varchar(10)  | NO   |     |         |       |
+| CollectionUnits                   | SiteID                   | int(11)      | NO   | MUL |         |       |
+| CollectionUnits                   | CollTypeID               | int(11)      | YES  | MUL |         |       |
+| CollectionUnits                   | DepEnvtID                | int(11)      | YES  | MUL |         |       |
+| CollectionUnits                   | CollUnitName             | varchar(255) | YES  |     |         |       |
+| CollectionUnits                   | CollDate                 | date         | YES  |     |         |       |
+| CollectionUnits                   | CollDevice               | varchar(255) | YES  |     |         |       |
+| CollectionUnits                   | GPSLatitude              | double       | YES  |     |         |       |
+| CollectionUnits                   | GPSLongitude             | double       | YES  |     |         |       |
+| CollectionUnits                   | GPSAltitude              | double       | YES  |     |         |       |
+| CollectionUnits                   | GPSError                 | double       | YES  |     |         |       |
+| CollectionUnits                   | WaterDepth               | double       | YES  |     |         |       |
+| CollectionUnits                   | SubstrateID              | int(11)      | YES  | MUL |         |       |
+| CollectionUnits                   | SlopeAspect              | int(11)      | YES  |     |         |       |
+| CollectionUnits                   | SlopeAngle               | int(11)      | YES  |     |         |       |
+| CollectionUnits                   | Location                 | varchar(255) | YES  |     |         |       |
+| CollectionUnits                   | Notes                    | longtext     | YES  |     |         |       |
+| CollectionUnits                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| CollectionUnits                   | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Collectors                        | CollectorID              | int(11)      | NO   | PRI |         |       |
+| Collectors                        | CollectionUnitID         | int(11)      | NO   | MUL |         |       |
+| Collectors                        | ContactID                | int(11)      | NO   | MUL |         |       |
+| Collectors                        | CollectorOrder           | int(11)      | YES  |     |         |       |
+| Collectors                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| Collectors                        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ConstituentDatabases              | DatabaseID               | int(11)      | NO   | PRI |         |       |
+| ConstituentDatabases              | DatabaseName             | varchar(80)  | NO   |     |         |       |
+| ConstituentDatabases              | ContactID                | int(11)      | YES  | MUL |         |       |
+| ConstituentDatabases              | URL                      | varchar(128) | YES  |     |         |       |
+| ConstituentDatabases              | RecDateCreated           | datetime     | NO   |     |         |       |
+| ConstituentDatabases              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ContactStatuses                   | ContactStatusID          | int(11)      | NO   | PRI |         |       |
+| ContactStatuses                   | ContactStatus            | varchar(16)  | YES  |     |         |       |
+| ContactStatuses                   | StatusDescription        | varchar(255) | YES  |     |         |       |
+| ContactStatuses                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| ContactStatuses                   | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Contacts                          | ContactID                | int(11)      | NO   | PRI |         |       |
+| Contacts                          | AliasID                  | int(11)      | YES  |     |         |       |
+| Contacts                          | ContactName              | varchar(80)  | NO   |     |         |       |
+| Contacts                          | ContactStatusID          | int(11)      | YES  | MUL |         |       |
+| Contacts                          | FamilyName               | varchar(80)  | YES  |     |         |       |
+| Contacts                          | LeadingInitials          | varchar(16)  | YES  |     |         |       |
+| Contacts                          | GivenNames               | varchar(80)  | YES  |     |         |       |
+| Contacts                          | Suffix                   | varchar(16)  | YES  |     |         |       |
+| Contacts                          | Title                    | varchar(16)  | YES  |     |         |       |
+| Contacts                          | Phone                    | varchar(64)  | YES  |     |         |       |
+| Contacts                          | Fax                      | varchar(64)  | YES  |     |         |       |
+| Contacts                          | Email                    | varchar(64)  | YES  |     |         |       |
+| Contacts                          | URL                      | varchar(255) | YES  |     |         |       |
+| Contacts                          | Address                  | longtext     | YES  |     |         |       |
+| Contacts                          | Notes                    | longtext     | YES  |     |         |       |
+| Contacts                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| Contacts                          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ContextsDatasetTypes              | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| ContextsDatasetTypes              | VariableContextID        | int(11)      | NO   | PRI |         |       |
+| ContextsDatasetTypes              | RecDateCreated           | datetime     | NO   |     |         |       |
+| ContextsDatasetTypes              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Data                              | DataID                   | int(11)      | NO   | PRI |         |       |
+| Data                              | SampleID                 | int(11)      | NO   | MUL |         |       |
+| Data                              | VariableID               | int(11)      | NO   | MUL |         |       |
+| Data                              | Value                    | double       | YES  |     |         |       |
+| Data                              | RecDateCreated           | datetime     | NO   |     |         |       |
+| Data                              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DataTaxonNotes                    | DataTaxonNotesID         | int(11)      | NO   | PRI |         |       |
+| DataTaxonNotes                    | DataID                   | int(11)      | NO   | MUL |         |       |
+| DataTaxonNotes                    | ContactID                | int(11)      | NO   | MUL |         |       |
+| DataTaxonNotes                    | Date                     | date         | NO   |     |         |       |
+| DataTaxonNotes                    | Notes                    | longtext     | NO   |     |         |       |
+| DataTaxonNotes                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| DataTaxonNotes                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetDatabases                  | DatasetID                | int(11)      | NO   | PRI |         |       |
+| DatasetDatabases                  | DatabaseID               | int(11)      | NO   | PRI |         |       |
+| DatasetDatabases                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetDatabases                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetPIs                        | DatasetID                | int(11)      | NO   | PRI |         |       |
+| DatasetPIs                        | ContactID                | int(11)      | NO   | PRI |         |       |
+| DatasetPIs                        | PIOrder                  | int(11)      | YES  |     |         |       |
+| DatasetPIs                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetPIs                        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetPublications               | DatasetID                | int(11)      | NO   | PRI |         |       |
+| DatasetPublications               | PublicationID            | int(11)      | NO   | PRI |         |       |
+| DatasetPublications               | PrimaryPub               | tinyint(4)   | YES  |     |         |       |
+| DatasetPublications               | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetPublications               | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetSubmissionTypes            | SubmissionTypeID         | int(11)      | NO   | PRI |         |       |
+| DatasetSubmissionTypes            | SubmissionType           | varchar(80)  | NO   |     |         |       |
+| DatasetSubmissionTypes            | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetSubmissionTypes            | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetSubmissions                | SubmissionID             | int(11)      | NO   | PRI |         |       |
+| DatasetSubmissions                | DatasetID                | int(11)      | NO   | MUL |         |       |
+| DatasetSubmissions                | DatabaseID               | int(11)      | YES  | MUL |         |       |
+| DatasetSubmissions                | ContactID                | int(11)      | YES  | MUL |         |       |
+| DatasetSubmissions                | SubmissionTypeID         | int(11)      | YES  | MUL |         |       |
+| DatasetSubmissions                | SubmissionDate           | date         | YES  |     |         |       |
+| DatasetSubmissions                | Notes                    | longtext     | YES  |     |         |       |
+| DatasetSubmissions                | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetSubmissions                | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetTaxaGroupTypes             | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| DatasetTaxaGroupTypes             | TaxaGroupID              | varchar(3)   | NO   | PRI |         |       |
+| DatasetTaxaGroupTypes             | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetTaxaGroupTypes             | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DatasetTypes                      | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| DatasetTypes                      | DatasetType              | varchar(64)  | NO   |     |         |       |
+| DatasetTypes                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| DatasetTypes                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Datasets                          | DatasetID                | int(11)      | NO   | PRI |         |       |
+| Datasets                          | CollectionUnitID         | int(11)      | NO   |     |         |       |
+| Datasets                          | DatasetTypeID            | int(11)      | NO   | MUL |         |       |
+| Datasets                          | DatasetName              | varchar(80)  | YES  |     |         |       |
+| Datasets                          | Notes                    | longtext     | YES  |     |         |       |
+| Datasets                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| Datasets                          | RecDateModified          | datetime     | NO   |     |         |       |
+| Datasets                          | EmbargoID                | int(11)      | YES  |     |         |       |
+
+| DepAgentTypes                     | DepAgentID               | int(11)      | NO   | PRI |         |       |
+| DepAgentTypes                     | DepAgent                 | varchar(64)  | YES  |     |         |       |
+| DepAgentTypes                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| DepAgentTypes                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DepAgents                         | AnalysisUnitID           | int(11)      | NO   | PRI |         |       |
+| DepAgents                         | DepAgentID               | int(11)      | NO   | PRI |         |       |
+| DepAgents                         | RecDateCreated           | datetime     | NO   |     |         |       |
+| DepAgents                         | RecDateModified          | datetime     | NO   |     |         |       |
+
+| DepEnvtTypes                      | DepEnvtID                | int(11)      | NO   | PRI |         |       |
+| DepEnvtTypes                      | DepEnvt                  | varchar(255) | NO   |     |         |       |
+| DepEnvtTypes                      | DepEnvtHigherID          | int(11)      | NO   |     |         |       |
+| DepEnvtTypes                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| DepEnvtTypes                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| EcolGroupTypes                    | EcolGroupID              | varchar(4)   | NO   | PRI |         |       |
+| EcolGroupTypes                    | EcolGroup                | varchar(64)  | YES  |     |         |       |
+| EcolGroupTypes                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| EcolGroupTypes                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| EcolGroups                        | TaxonID                  | int(11)      | NO   | PRI |         |       |
+| EcolGroups                        | EcolSetID                | int(11)      | NO   | PRI |         |       |
+| EcolGroups                        | EcolGroupID              | varchar(4)   | NO   | MUL |         |       |
+| EcolGroups                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| EcolGroups                        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| EcolSetTypes                      | EcolSetID                | int(11)      | NO   | PRI |         |       |
+| EcolSetTypes                      | EcolSetName              | varchar(64)  | NO   |     |         |       |
+| EcolSetTypes                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| EcolSetTypes                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementDatasetTaxaGroups          | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| ElementDatasetTaxaGroups          | TaxaGroupID              | varchar(3)   | NO   | PRI |         |       |
+| ElementDatasetTaxaGroups          | ElementTypeID            | int(11)      | NO   | PRI |         |       |
+| ElementDatasetTaxaGroups          | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementDatasetTaxaGroups          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementMaturities                 | MaturityID               | int(11)      | NO   | PRI |         |       |
+| ElementMaturities                 | Maturity                 | varchar(36)  | NO   |     |         |       |
+| ElementMaturities                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementMaturities                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementPortions                   | PortionID                | int(11)      | NO   | PRI |         |       |
+| ElementPortions                   | Portion                  | varchar(36)  | YES  |     |         |       |
+| ElementPortions                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementPortions                   | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementSymmetries                 | SymmetryID               | int(11)      | NO   | PRI |         |       |
+| ElementSymmetries                 | Symmetry                 | varchar(24)  | NO   |     |         |       |
+| ElementSymmetries                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementSymmetries                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementTaxaGroupMaturities        | ElementTaxaGroupID       | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupMaturities        | MaturityID               | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupMaturities        | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementTaxaGroupMaturities        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementTaxaGroupPortions          | ElementTaxaGroupID       | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupPortions          | PortionID                | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupPortions          | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementTaxaGroupPortions          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementTaxaGroupSymmetries        | ElementTaxaGroupID       | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupSymmetries        | SymmetryID               | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroupSymmetries        | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementTaxaGroupSymmetries        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementTaxaGroups                 | ElementTaxaGroupID       | int(11)      | NO   | PRI |         |       |
+| ElementTaxaGroups                 | TaxaGroupID              | varchar(3)   | NO   | MUL |         |       |
+| ElementTaxaGroups                 | ElementTypeID            | int(11)      | NO   | MUL |         |       |
+| ElementTaxaGroups                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementTaxaGroups                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ElementTypes                      | ElementTypeID            | int(11)      | NO   | PRI |         |       |
+| ElementTypes                      | ElementType              | varchar(64)  | NO   |     |         |       |
+| ElementTypes                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| ElementTypes                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| EventChronology                   | EventChronologyID        | int(11)      | NO   | PRI |         |       |
+| EventChronology                   | AnalysisUnitID           | int(11)      | NO   |     |         |       |
+| EventChronology                   | EventID                  | int(11)      | NO   | MUL |         |       |
+| EventChronology                   | Notes                    | longtext     | YES  |     |         |       |
+| EventChronology                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| EventChronology                   | RecDateModified          | datetime     | NO   |     |         |       |
+| EventChronology                   | ChronControlID           | int(11)      | NO   |     |         |       |
+
+| EventPublications                 | EventID                  | int(11)      | NO   | PRI |         |       |
+| EventPublications                 | PublicationID            | int(11)      | NO   | PRI |         |       |
+| EventPublications                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| EventPublications                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| EventTypes                        | EventTypeID              | int(11)      | NO   | PRI |         |       |
+| EventTypes                        | EventType                | varchar(40)  | NO   |     |         |       |
+| EventTypes                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| EventTypes                        | RecDateModified          | datetime     | NO   |     |         |       |
+| EventTypes                        | ChronControlTypeID       | int(11)      | YES  |     |         |       |
+
+| Events                            | EventID                  | int(11)      | NO   | PRI |         |       |
+| Events                            | EventTypeID              | int(11)      | NO   | MUL |         |       |
+| Events                            | EventName                | varchar(80)  | NO   |     |         |       |
+| Events                            | C14Age                   | double       | YES  |     |         |       |
+| Events                            | C14AgeYounger            | double       | YES  |     |         |       |
+| Events                            | C14AgeOlder              | double       | YES  |     |         |       |
+| Events                            | CalAge                   | double       | YES  |     |         |       |
+| Events                            | CalAgeYounger            | double       | YES  |     |         |       |
+| Events                            | CalAgeOlder              | double       | YES  |     |         |       |
+| Events                            | Notes                    | longtext     | YES  |     |         |       |
+| Events                            | RecDateCreated           | datetime     | NO   |     |         |       |
+| Events                            | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ExternalDatabases                 | ExtDatabaseID            | int(11)      | NO   | PRI |         |       |
+| ExternalDatabases                 | ExtDatabaseName          | varchar(80)  | NO   |     |         |       |
+| ExternalDatabases                 | URL                      | varchar(128) | YES  |     |         |       |
+| ExternalDatabases                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| ExternalDatabases                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ExternalPublications              | PublicationID            | int(11)      | NO   | PRI |         |       |
+| ExternalPublications              | ExtDatabaseID            | int(11)      | NO   | PRI |         |       |
+| ExternalPublications              | ExtPublicationID         | int(11)      | NO   |     |         |       |
+| ExternalPublications              | RecDateCreated           | datetime     | NO   |     |         |       |
+| ExternalPublications              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| ExternalTaxa                      | TaxonID                  | int(11)      | NO   | PRI |         |       |
+| ExternalTaxa                      | ExtDatabaseID            | int(11)      | NO   | PRI |         |       |
+| ExternalTaxa                      | ExtTaxonID               | varchar(64)  | NO   |     |         |       |
+| ExternalTaxa                      | URL                      | varchar(128) | YES  |     |         |       |
+| ExternalTaxa                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| ExternalTaxa                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| FaciesTypes                       | FaciesID                 | int(11)      | NO   | PRI |         |       |
+| FaciesTypes                       | Facies                   | varchar(64)  | NO   |     |         |       |
+| FaciesTypes                       | RecDateCreated           | datetime     | NO   |     |         |       |
+| FaciesTypes                       | RecDateModified          | datetime     | NO   |     |         |       |
+
+| FractionDated                     | FractionID               | int(11)      | NO   | PRI |         |       |
+| FractionDated                     | Fraction                 | varchar(80)  | NO   |     |         |       |
+| FractionDated                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| FractionDated                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| GeoChronControls                  | ChronControlID           | int(11)      | NO   | PRI |         |       |
+| GeoChronControls                  | GeochronID               | int(11)      | NO   | PRI |         |       |
+| GeoChronControls                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| GeoChronControls                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| GeoPoliticalUnits                 | GeoPoliticalID           | int(11)      | NO   | PRI |         |       |
+| GeoPoliticalUnits                 | GeoPoliticalName         | varchar(255) | NO   |     |         |       |
+| GeoPoliticalUnits                 | GeoPoliticalUnit         | varchar(255) | YES  |     |         |       |
+| GeoPoliticalUnits                 | Rank                     | int(11)      | NO   |     |         |       |
+| GeoPoliticalUnits                 | HigherGeoPoliticalID     | int(11)      | NO   |     |         |       |
+| GeoPoliticalUnits                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| GeoPoliticalUnits                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| GeochronPublications              | GeochronID               | int(11)      | NO   | PRI |         |       |
+| GeochronPublications              | PublicationID            | int(11)      | NO   | PRI |         |       |
+| GeochronPublications              | RecDateCreated           | datetime     | NO   |     |         |       |
+| GeochronPublications              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| GeochronTypes                     | GeochronTypeID           | int(11)      | NO   | PRI |         |       |
+| GeochronTypes                     | GeochronType             | varchar(64)  | NO   |     |         |       |
+| GeochronTypes                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| GeochronTypes                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Geochronology                     | GeochronID               | int(11)      | NO   | PRI |         |       |
+| Geochronology                     | SampleID                 | int(11)      | NO   | MUL |         |       |
+| Geochronology                     | GeochronTypeID           | int(11)      | NO   | MUL |         |       |
+| Geochronology                     | AgeTypeID                | int(11)      | NO   | MUL |         |       |
+| Geochronology                     | Age                      | double       | YES  |     |         |       |
+| Geochronology                     | ErrorOlder               | double       | YES  |     |         |       |
+| Geochronology                     | ErrorYounger             | double       | YES  |     |         |       |
+| Geochronology                     | Infinite                 | tinyint(4)   | NO   |     |         |       |
+| Geochronology                     | Delta13C                 | double       | YES  |     |         |       |
+| Geochronology                     | LabNumber                | varchar(40)  | YES  |     |         |       |
+| Geochronology                     | MaterialDated            | varchar(255) | YES  |     |         |       |
+| Geochronology                     | Notes                    | longtext     | YES  |     |         |       |
+| Geochronology                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| Geochronology                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Keywords                          | KeywordID                | int(11)      | NO   | PRI |         |       |
+| Keywords                          | Keyword                  | varchar(64)  | NO   |     |         |       |
+| Keywords                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| Keywords                          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| LakeParameterTypes                | LakeParameterID          | int(11)      | NO   | PRI |         |       |
+| LakeParameterTypes                | LakeParameterCode        | varchar(20)  | NO   |     |         |       |
+| LakeParameterTypes                | LakeParameterShortName   | varchar(40)  | NO   |     |         |       |
+| LakeParameterTypes                | LakeParameter            | varchar(80)  | NO   |     |         |       |
+| LakeParameterTypes                | RecDateCreated           | datetime     | NO   |     |         |       |
+| LakeParameterTypes                | RecDateModified          | datetime     | NO   |     |         |       |
+
+| LakeParameters                    | SiteID                   | int(11)      | NO   | PRI |         |       |
+| LakeParameters                    | LakeParameterID          | int(11)      | NO   | PRI |         |       |
+| LakeParameters                    | Value                    | double       | NO   |     |         |       |
+| LakeParameters                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| LakeParameters                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Lithology                         | LithologyID              | int(11)      | NO   | PRI |         |       |
+| Lithology                         | CollectionUnitID         | int(11)      | NO   | MUL |         |       |
+| Lithology                         | DepthTop                 | double       | YES  |     |         |       |
+| Lithology                         | DepthBottom              | double       | YES  |     |         |       |
+| Lithology                         | LowerBoundary            | varchar(255) | YES  |     |         |       |
+| Lithology                         | Description              | longtext     | YES  |     |         |       |
+| Lithology                         | RecDateCreated           | datetime     | NO   |     |         |       |
+| Lithology                         | RecDateModified          | datetime     | NO   |     |         |       |
+
+| PublicationAuthors                | AuthorID                 | int(11)      | NO   | PRI |         |       |
+| PublicationAuthors                | PublicationID            | int(11)      | NO   | MUL |         |       |
+| PublicationAuthors                | AuthorOrder              | int(11)      | YES  |     |         |       |
+| PublicationAuthors                | FamilyName               | varchar(64)  | YES  |     |         |       |
+| PublicationAuthors                | Initials                 | varchar(8)   | YES  |     |         |       |
+| PublicationAuthors                | Suffix                   | varchar(8)   | YES  |     |         |       |
+| PublicationAuthors                | ContactID                | int(11)      | YES  | MUL |         |       |
+| PublicationAuthors                | RecDateCreated           | datetime     | NO   |     |         |       |
+| PublicationAuthors                | RecDateModified          | datetime     | NO   |     |         |       |
+
+| PublicationEditors                | EditorID                 | int(11)      | NO   | PRI |         |       |
+| PublicationEditors                | PublicationID            | int(11)      | NO   | MUL |         |       |
+| PublicationEditors                | EditorOrder              | int(11)      | YES  |     |         |       |
+| PublicationEditors                | FamilyName               | varchar(64)  | YES  |     |         |       |
+| PublicationEditors                | Initials                 | varchar(8)   | YES  |     |         |       |
+| PublicationEditors                | Suffix                   | varchar(8)   | YES  |     |         |       |
+| PublicationEditors                | RecDateCreated           | datetime     | NO   |     |         |       |
+| PublicationEditors                | RecDateModified          | datetime     | NO   |     |         |       |
+
+| PublicationTranslators            | TranslatorID             | int(11)      | NO   | PRI |         |       |
+| PublicationTranslators            | PublicationID            | int(11)      | NO   | MUL |         |       |
+| PublicationTranslators            | TranslatorOrder          | int(11)      | YES  |     |         |       |
+| PublicationTranslators            | FamilyName               | varchar(64)  | YES  |     |         |       |
+| PublicationTranslators            | Initials                 | varchar(8)   | YES  |     |         |       |
+| PublicationTranslators            | Suffix                   | varchar(8)   | YES  |     |         |       |
+| PublicationTranslators            | RecDateCreated           | datetime     | NO   |     |         |       |
+| PublicationTranslators            | RecDateModified          | datetime     | NO   |     |         |       |
+
+| PublicationTypes                  | PubTypeID                | int(11)      | NO   | PRI |         |       |
+| PublicationTypes                  | PubType                  | varchar(24)  | NO   |     |         |       |
+| PublicationTypes                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| PublicationTypes                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Publications                      | PublicationID            | int(11)      | NO   | PRI |         |       |
+| Publications                      | PubTypeID                | int(11)      | YES  | MUL |         |       |
+| Publications                      | Year                     | varchar(64)  | YES  |     |         |       |
+| Publications                      | Citation                 | longtext     | YES  |     |         |       |
+| Publications                      | ArticleTitle             | longtext     | YES  |     |         |       |
+| Publications                      | Journal                  | longtext     | YES  |     |         |       |
+| Publications                      | Volume                   | varchar(16)  | YES  |     |         |       |
+| Publications                      | Issue                    | varchar(8)   | YES  |     |         |       |
+| Publications                      | Pages                    | varchar(24)  | YES  |     |         |       |
+| Publications                      | CitationNumber           | varchar(24)  | YES  |     |         |       |
+| Publications                      | DOI                      | varchar(128) | YES  |     |         |       |
+| Publications                      | BookTitle                | longtext     | YES  |     |         |       |
+| Publications                      | NumVolumes               | varchar(8)   | YES  |     |         |       |
+| Publications                      | Edition                  | varchar(24)  | YES  |     |         |       |
+| Publications                      | VolumeTitle              | longtext     | YES  |     |         |       |
+| Publications                      | SeriesTitle              | longtext     | YES  |     |         |       |
+| Publications                      | SeriesVolume             | varchar(16)  | YES  |     |         |       |
+| Publications                      | Publisher                | varchar(255) | YES  |     |         |       |
+| Publications                      | URL                      | longtext     | YES  |     |         |       |
+| Publications                      | City                     | varchar(64)  | YES  |     |         |       |
+| Publications                      | State                    | varchar(64)  | YES  |     |         |       |
+| Publications                      | Country                  | varchar(64)  | YES  |     |         |       |
+| Publications                      | OriginalLanguage         | varchar(64)  | YES  |     |         |       |
+| Publications                      | Notes                    | longtext     | YES  |     |         |       |
+| Publications                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| Publications                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RadiocarbonCalibration            | C14yrBP                  | int(11)      | NO   | PRI |         |       |
+| RadiocarbonCalibration            | CalyrBP                  | int(11)      | NO   |     |         |       |
+
+| RelativeAgePublications           | RelativeAgeID            | int(11)      | NO   | PRI |         |       |
+| RelativeAgePublications           | PublicationID            | int(11)      | NO   | PRI |         |       |
+| RelativeAgePublications           | RecDateCreated           | datetime     | NO   |     |         |       |
+| RelativeAgePublications           | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RelativeAgeScales                 | RelativeAgeScaleID       | int(11)      | NO   | PRI |         |       |
+| RelativeAgeScales                 | RelativeAgeScale         | varchar(64)  | NO   |     |         |       |
+| RelativeAgeScales                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| RelativeAgeScales                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RelativeAgeUnits                  | RelativeAgeUnitID        | int(11)      | NO   | PRI |         |       |
+| RelativeAgeUnits                  | RelativeAgeUnit          | varchar(64)  | NO   |     |         |       |
+| RelativeAgeUnits                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| RelativeAgeUnits                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RelativeAges                      | RelativeAgeID            | int(11)      | NO   | PRI |         |       |
+| RelativeAges                      | RelativeAgeUnitID        | int(11)      | NO   | MUL |         |       |
+| RelativeAges                      | RelativeAgeScaleID       | int(11)      | NO   | MUL |         |       |
+| RelativeAges                      | RelativeAge              | varchar(64)  | NO   |     |         |       |
+| RelativeAges                      | C14AgeYounger            | double       | YES  |     |         |       |
+| RelativeAges                      | C14AgeOlder              | double       | YES  |     |         |       |
+| RelativeAges                      | CalAgeYounger            | double       | YES  |     |         |       |
+| RelativeAges                      | CalAgeOlder              | double       | YES  |     |         |       |
+| RelativeAges                      | Notes                    | longtext     | YES  |     |         |       |
+| RelativeAges                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| RelativeAges                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RelativeChronology                | RelativeChronID          | int(11)      | NO   | PRI |         |       |
+| RelativeChronology                | AnalysisUnitID           | int(11)      | NO   | MUL |         |       |
+| RelativeChronology                | RelativeAgeID            | int(11)      | NO   | MUL |         |       |
+| RelativeChronology                | Notes                    | longtext     | YES  |     |         |       |
+| RelativeChronology                | RecDateCreated           | datetime     | NO   |     |         |       |
+| RelativeChronology                | RecDateModified          | datetime     | NO   |     |         |       |
+| RelativeChronology                | ChronControlID           | int(11)      | YES  |     |         |       |
+
+| RepositoryInstitutions            | RepositoryID             | int(11)      | NO   | PRI |         |       |
+| RepositoryInstitutions            | Acronym                  | varchar(64)  | NO   |     |         |       |
+| RepositoryInstitutions            | Repository               | varchar(128) | NO   |     |         |       |
+| RepositoryInstitutions            | Notes                    | longtext     | YES  |     |         |       |
+| RepositoryInstitutions            | RecDateCreated           | datetime     | NO   |     |         |       |
+| RepositoryInstitutions            | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RepositorySpecimens               | DatasetID                | int(11)      | NO   | PRI |         |       |
+| RepositorySpecimens               | RepositoryID             | int(11)      | NO   | PRI |         |       |
+| RepositorySpecimens               | Notes                    | longtext     | YES  |     |         |       |
+| RepositorySpecimens               | RecDateCreated           | datetime     | NO   |     |         |       |
+| RepositorySpecimens               | RecDateModified          | datetime     | NO   |     |         |       |
+
+| RockTypes                         | RockTypeID               | int(11)      | NO   | PRI |         |       |
+| RockTypes                         | RockType                 | varchar(64)  | NO   |     |         |       |
+| RockTypes                         | HigherRockTypeID         | int(11)      | NO   |     |         |       |
+| RockTypes                         | Description              | longtext     | NO   |     |         |       |
+| RockTypes                         | RecDateCreated           | datetime     | NO   |     |         |       |
+| RockTypes                         | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SampleAges                        | SampleAgeID              | int(11)      | NO   | PRI |         |       |
+| SampleAges                        | SampleID                 | int(11)      | NO   | MUL |         |       |
+| SampleAges                        | ChronologyID             | int(11)      | NO   | MUL |         |       |
+| SampleAges                        | Age                      | double       | YES  |     |         |       |
+| SampleAges                        | AgeYounger               | double       | YES  |     |         |       |
+| SampleAges                        | AgeOlder                 | double       | YES  |     |         |       |
+| SampleAges                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| SampleAges                        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SampleAnalysts                    | AnalystID                | int(11)      | NO   | PRI |         |       |
+| SampleAnalysts                    | SampleID                 | int(11)      | NO   | MUL |         |       |
+| SampleAnalysts                    | ContactID                | int(11)      | NO   | MUL |         |       |
+| SampleAnalysts                    | AnalystOrder             | int(11)      | NO   |     |         |       |
+| SampleAnalysts                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| SampleAnalysts                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SampleKeywords                    | SampleID                 | int(11)      | NO   | PRI |         |       |
+| SampleKeywords                    | KeywordID                | int(11)      | NO   | PRI |         |       |
+| SampleKeywords                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| SampleKeywords                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Samples                           | SampleID                 | int(11)      | NO   | PRI |         |       |
+| Samples                           | AnalysisUnitID           | int(11)      | NO   | MUL |         |       |
+| Samples                           | DatasetID                | int(11)      | NO   | MUL |         |       |
+| Samples                           | SampleName               | varchar(80)  | YES  |     |         |       |
+| Samples                           | AnalysisDate             | date         | YES  |     |         |       |
+| Samples                           | LabNumber                | varchar(40)  | YES  |     |         |       |
+| Samples                           | PreparationMethod        | longtext     | YES  |     |         |       |
+| Samples                           | Notes                    | longtext     | YES  |     |         |       |
+| Samples                           | RecDateCreated           | datetime     | NO   |     |         |       |
+| Samples                           | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SiteGeoPolitical                  | SiteGeoPoliticalID       | int(11)      | NO   | PRI |         |       |
+| SiteGeoPolitical                  | SiteID                   | int(11)      | NO   | MUL |         |       |
+| SiteGeoPolitical                  | GeoPoliticalID           | int(11)      | NO   | MUL |         |       |
+| SiteGeoPolitical                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| SiteGeoPolitical                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SiteImages                        | SiteImageID              | int(11)      | NO   | PRI |         |       |
+| SiteImages                        | SiteID                   | int(11)      | YES  | MUL |         |       |
+| SiteImages                        | ContactID                | int(11)      | YES  | MUL |         |       |
+| SiteImages                        | Caption                  | longtext     | YES  |     |         |       |
+| SiteImages                        | Credit                   | varchar(255) | YES  |     |         |       |
+| SiteImages                        | Date                     | date         | YES  |     |         |       |
+| SiteImages                        | SiteImage                | longtext     | YES  |     |         |       |
+| SiteImages                        | RecDateCreated           | datetime     | NO   |     |         |       |
+| SiteImages                        | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Sites                             | SiteID                   | int(11)      | NO   | PRI |         |       |
+| Sites                             | SiteName                 | varchar(128) | YES  |     |         |       |
+| Sites                             | LongitudeEast            | double       | YES  |     |         |       |
+| Sites                             | LatitudeNorth            | double       | YES  |     |         |       |
+| Sites                             | LongitudeWest            | double       | YES  |     |         |       |
+| Sites                             | LatitudeSouth            | double       | YES  |     |         |       |
+| Sites                             | Altitude                 | double       | YES  |     |         |       |
+| Sites                             | Area                     | double       | YES  |     |         |       |
+| Sites                             | SiteDescription          | longtext     | YES  |     |         |       |
+| Sites                             | Notes                    | longtext     | YES  |     |         |       |
+| Sites                             | RecDateCreated           | datetime     | NO   |     |         |       |
+| Sites                             | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SpecimenDates                     | SpecimenDateID           | int(11)      | NO   | PRI |         |       |
+| SpecimenDates                     | GeochronID               | int(11)      | NO   | MUL |         |       |
+| SpecimenDates                     | TaxonID                  | int(11)      | NO   | MUL |         |       |
+| SpecimenDates                     | FractionID               | int(11)      | YES  | MUL |         |       |
+| SpecimenDates                     | SampleID                 | int(11)      | NO   | MUL |         |       |
+| SpecimenDates                     | Notes                    | longtext     | YES  |     |         |       |
+| SpecimenDates                     | ElementTypeID            | int(11)      | YES  | MUL |         |       |
+| SpecimenDates                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| SpecimenDates                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SummaryDataTaphonomy              | DataID                   | int(11)      | NO   | PRI |         |       |
+| SummaryDataTaphonomy              | TaphonomicTypeID         | int(11)      | NO   | PRI |         |       |
+| SummaryDataTaphonomy              | RecDateCreated           | datetime     | NO   |     |         |       |
+| SummaryDataTaphonomy              | RecDateModified          | datetime     | NO   |     |         |       |
+
+| SynonymTypes                      | SynonymTypeID            | int(11)      | NO   | PRI |         |       |
+| SynonymTypes                      | SynonymType              | varchar(255) | YES  |     |         |       |
+| SynonymTypes                      | RecDateCreated           | datetime     | NO   |     |         |       |
+| SynonymTypes                      | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Synonyms                          | SynonymID                | int(11)      | NO   | PRI |         |       |
+| Synonyms                          | InvalidTaxonID           | int(11)      | NO   | MUL |         |       |
+| Synonyms                          | ValidTaxonID             | int(11)      | NO   | MUL |         |       |
+| Synonyms                          | SynonymTypeID            | int(11)      | YES  | MUL |         |       |
+| Synonyms                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| Synonyms                          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Synonymy                          | SynonymyID               | int(11)      | NO   | PRI |         |       |
+| Synonymy                          | DatasetID                | int(11)      | NO   | MUL |         |       |
+| Synonymy                          | TaxonID                  | int(11)      | NO   | MUL |         |       |
+| Synonymy                          | RefTaxonID               | int(11)      | NO   | MUL |         |       |
+| Synonymy                          | FromContributor          | tinyint(4)   | YES  |     |         |       |
+| Synonymy                          | PublicationID            | int(11)      | YES  | MUL |         |       |
+| Synonymy                          | Notes                    | longtext     | YES  |     |         |       |
+| Synonymy                          | ContactID                | int(11)      | YES  | MUL |         |       |
+| Synonymy                          | DateSynonymized          | date         | YES  |     |         |       |
+| Synonymy                          | RecDateCreated           | datetime     | NO   |     |         |       |
+| Synonymy                          | RecDateModified          | datetime     | NO   |     |         |       |
+
+| TaphonomicSystems                 | TaphonomicSystemID       | int(11)      | NO   | PRI |         |       |
+| TaphonomicSystems                 | TaphonomicSystem         | varchar(64)  | NO   |     |         |       |
+| TaphonomicSystems                 | Notes                    | longtext     | YES  |     |         |       |
+| TaphonomicSystems                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| TaphonomicSystems                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| TaphonomicSystemsDatasetTypes     | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| TaphonomicSystemsDatasetTypes     | TaphonomicSystemID       | int(11)      | NO   | PRI |         |       |
+| TaphonomicSystemsDatasetTypes     | RecDateCreated           | datetime     | NO   |     |         |       |
+| TaphonomicSystemsDatasetTypes     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| TaphonomicTypes                   | TaphonomicTypeID         | int(11)      | NO   | PRI |         |       |
+| TaphonomicTypes                   | TaphonomicSystemID       | int(11)      | YES  | MUL |         |       |
+| TaphonomicTypes                   | TaphonomicType           | varchar(64)  | NO   |     |         |       |
+| TaphonomicTypes                   | Notes                    | longtext     | YES  |     |         |       |
+| TaphonomicTypes                   | RecDateCreated           | datetime     | NO   |     |         |       |
+| TaphonomicTypes                   | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Taxa                              | TaxonID                  | int(11)      | NO   | PRI |         |       |
+| Taxa                              | TaxonCode                | varchar(64)  | NO   |     |         |       |
+| Taxa                              | TaxonName                | varchar(80)  | NO   |     |         |       |
+| Taxa                              | Author                   | varchar(128) | YES  |     |         |       |
+| Taxa                              | Valid                    | tinyint(4)   | YES  |     |         |       |
+| Taxa                              | HigherTaxonID            | int(11)      | YES  |     |         |       |
+| Taxa                              | Extinct                  | tinyint(4)   | NO   |     |         |       |
+| Taxa                              | TaxaGroupID              | varchar(3)   | NO   | MUL |         |       |
+| Taxa                              | PublicationID            | int(11)      | YES  | MUL |         |       |
+| Taxa                              | ValidatorID              | int(11)      | YES  | MUL |         |       |
+| Taxa                              | ValidateDate             | date         | YES  |     |         |       |
+| Taxa                              | Notes                    | longtext     | YES  |     |         |       |
+| Taxa                              | RecDateCreated           | datetime     | YES  |     |         |       |
+| Taxa                              | RecDateModified          | datetime     | YES  |     |         |       |
+
+| TaxaGroupTypes                    | TaxaGroupID              | varchar(3)   | NO   | PRI |         |       |
+| TaxaGroupTypes                    | TaxaGroup                | varchar(64)  | NO   |     |         |       |
+| TaxaGroupTypes                    | RecDateCreated           | datetime     | NO   |     |         |       |
+| TaxaGroupTypes                    | RecDateModified          | datetime     | NO   |     |         |       |
+
+| UnitsDatasetTypes                 | DatasetTypeID            | int(11)      | NO   | PRI |         |       |
+| UnitsDatasetTypes                 | VariableUnitsID          | int(11)      | NO   | PRI |         |       |
+| UnitsDatasetTypes                 | RecDateCreated           | datetime     | NO   |     |         |       |
+| UnitsDatasetTypes                 | RecDateModified          | datetime     | NO   |     |         |       |
+
+| VariableContexts                  | VariableContextID        | int(11)      | NO   | PRI |         |       |
+| VariableContexts                  | VariableContext          | varchar(64)  | NO   |     |         |       |
+| VariableContexts                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| VariableContexts                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| VariableElements                  | VariableElementID        | int(11)      | NO   | PRI |         |       |
+| VariableElements                  | VariableElement          | varchar(255) | YES  |     |         |       |
+| VariableElements                  | ElementTypeID            | int(11)      | YES  | MUL |         |       |
+| VariableElements                  | SymmetryID               | int(11)      | YES  | MUL |         |       |
+| VariableElements                  | PortionID                | int(11)      | YES  | MUL |         |       |
+| VariableElements                  | MaturityID               | int(11)      | YES  | MUL |         |       |
+| VariableElements                  | RecDateCreated           | datetime     | NO   |     |         |       |
+| VariableElements                  | RecDateModified          | datetime     | NO   |     |         |       |
+
+| VariableUnits                     | VariableUnitsID          | int(11)      | NO   | PRI |         |       |
+| VariableUnits                     | VariableUnits            | varchar(64)  | NO   |     |         |       |
+| VariableUnits                     | RecDateCreated           | datetime     | NO   |     |         |       |
+| VariableUnits                     | RecDateModified          | datetime     | NO   |     |         |       |
+
+| Variables                         | VariableID               | int(11)      | NO   | PRI |         |       |
+| Variables                         | TaxonID                  | int(11)      | NO   | MUL |         |       |
+| Variables                         | VariableElementID        | int(11)      | YES  | MUL |         |       |
+| Variables                         | VariableUnitsID          | int(11)      | YES  | MUL |         |       |
+| Variables                         | VariableContextID        | int(11)      | YES  | MUL |         |       |
+| Variables                         | RecDateCreated           | datetime     | NO   |     |         |       |
+| Variables                         | RecDateModified          | datetime     | NO   |     |         |       |
