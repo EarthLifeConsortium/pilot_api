@@ -41,29 +41,29 @@ sub initialize {
     # ======================
     
     $ds->define_block('1.0:occs:basic' => 
-	{ output => 'database',
-	  com_name => 'sdb', neotoma_name => 'Database', pbdb_name => 'database' },
+	{ output => 'database', com_name => 'sdb',
+	  neotoma_name => 'Database', pbdb_name => 'database', dwc_name => 'institutionCode' },
 	    "The source database from which this occurrence was retrieved.",
 	{ set => 'occurrence_no', from => 'OccurID', if_field => 'OccurID' },
-	{ output => 'occurrence_no',
-	  com_name => 'oid', neotoma_name => 'OccurrenceID', pbdb_name => 'occurrence_no' },
+	{ output => 'occurrence_no', com_name => 'oid', 
+	  neotoma_name => 'OccurrenceID', pbdb_name => 'occurrence_no', dwc_name => 'occurrenceID' },
 	    "A unique identifier assigned to this occurrence.",
-	{ output => 'record_type', 
-	  com_name => 'typ', neotoma_name => 'RecordType', pbdb_name => 'record_type' },
+	{ output => 'record_type', com_name => 'typ', 
+	  neotoma_name => 'RecordType', pbdb_name => 'record_type', dwc_name => 'basisOfRecord' },
 	    "The type of this record. The value will be C<Occurrence> for the I<Neotoma>",
 	    "vocabulary, C<occurrence> for the I<PaleoBioDB> vocabulary, and C<occ> for",
 	    "the I<Compact> vocabulary.",
-	{ output => 'DatasetID',
-	  com_name => 'dst', neotoma_name => 'DatasetID', pbdb_name => 'dataset_no' },
+	{ output => 'DatasetID', com_name => 'dst', 
+	  neotoma_name => 'DatasetID', pbdb_name => 'dataset_no', dwc_name => 'datasetID' },
 	    "The dataset with which this occurrence is associated. This field will",
 	    "be empty for occurrences from PaleoBioDB.",
 	{ set => 'accepted_name', from => 'TaxonName', if_field => 'OccurID' },
-	{ output => 'accepted_name',
-	  com_name => 'tna', neotoma_name => 'TaxonName', pbdb_name => 'accepted_name' },
+	{ output => 'accepted_name', com_name => 'tna', 
+	  neotoma_name => 'TaxonName', pbdb_name => 'accepted_name', dwc_name => 'associatedTaxa' },
 	    "The taxonomic name by which this occurrence is identified.",
 	{ set => 'accepted_no', from => 'TaxonID', if_field => 'OccurID' },
 	{ output => 'accepted_no',
-	  com_name => 'tid', neotoma_name => 'TaxonID', pbdb_name => 'acepted_no' },
+	  com_name => 'tid', neotoma_name => 'TaxonID', pbdb_name => 'accepted_no' },
 	    "The unique identifier of this taxonomic name in the source database.",
 	{ output => 'AgeOlder', 
 	  com_name => 'eag', neotoma_name => 'AgeOlder', pbdb_name => 'max_age' },
@@ -82,32 +82,42 @@ sub initialize {
 	#     "The name of the site (SiteName for Neotoma, collection_name for",
 	#     "PaleoBioDB) where this occurrence is located.",
 	{ set => 'collection_no', from => 'SiteID', if_field => 'SiteID' },
-	{ output => 'collection_no',
-	  com_name => 'cid', neotoma_name => 'SiteID', pbdb_name => 'collection_no' },
+	{ output => 'collection_no', com_name => 'cid', 
+	  neotoma_name => 'SiteID', pbdb_name => 'collection_no', dwc_name => 'collectionID' },
 	    "The identifier of the site (SiteID for Neotoma, collection_no",
 	    "for PaleoBioDB) where this occurrence is located.",
+	{ set => '*', code => \&process_dwc, if_vocab => 'dwc' },
+	{ output => 'dwc_extra', dwc_name => 'occurrenceRemarks' },
+	    "Information for which the Darwin Core standard has no corresponding term.",
 	);
     
     $ds->define_set('1.0:occs:basic_map' => 
 	{ value => 'loc', maps_to => '1.0:occs:loc' },
-	    "The geographic location of the occurrence");
+	    "The geographic location of the occurrence",
+	{ value => 'subq' },
+	    "The URLs that were sent to the underlying databases in order",
+	    "to generate these results");
     
     $ds->define_block('1.0:occs:loc' =>
 	{ set => 'collection_name', from => 'SiteName', if_field => 'OccurID' },
 	{ output => 'collection_name', neotoma_name => 'SiteName', com_name => 'cnn',
-	  pbdb_name => 'collection_name' },
+	  pbdb_name => 'collection_name', dwc_name => 'verbatimLocality' },
 	    "The name of the site at which the occurrence is located.  This",
 	    "reports the C<SiteName> from Neotoma occurrences, and the",
 	    "C<collection_name> for PaleoBioDB occurrences.",
 	{ set => '*', code => \&NeotomaInterface::process_coords, if_field => 'OccurID' },	
-	{ output => 'lng', neotoma_name => 'Longitude', com_name => 'lng', pbdb_name => 'lng' },
+	{ output => 'lng', neotoma_name => 'Longitude', com_name => 'lng',
+	  pbdb_name => 'lng', dwc_name => 'decimalLongitude' },
 	    "The longitude of the site at which the occurrence is located.",
-	{ output => 'lat', neotoma_name => 'Latitude', com_name => 'lat', pbdb_name => 'lat' },
+	{ output => 'lat', neotoma_name => 'Latitude', com_name => 'lat', 
+	  pbdb_name => 'lat', dwc_name => 'decimalLatitude' },
 	    "The latitude of the site at which the occurrence is located.",
-	{ output => 'cc', com_name => 'cc2', pbdb_name => 'country', neotoma_name => 'Country' },
+	{ output => 'cc', com_name => 'cc2', pbdb_name => 'country', 
+	  neotoma_name => 'Country', dwc_name => 'countryCode' },
 	    "The country in which the occurrence is located, encoded as",
 	    "L<ISO-3166-1 alpha-2|https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>",
-	{ output => 'state', com_name => 'stp', pbdb_name => 'state', neotoma_name => 'State' },
+	{ output => 'state', com_name => 'stp', pbdb_name => 'state', neotoma_name => 'StateProvince',
+	  dwc_name => 'stateProvince' },
 	    "The state or province in which the collection is located, if known");
     
     $ds->define_set('1.0:subservices' =>
@@ -296,6 +306,8 @@ sub occs_list {
     my $ds = $request->ds;
     # my @constituents = ;
     
+    my %summary;
+    
     # We loop over the available constituent modules.  For each one which can
     # do the 'make_occs_list' method, we generate a subquery object. This
     # method generates the appropriate URL for the subquery.
@@ -310,6 +322,11 @@ sub occs_list {
 	    {
 		push @subqueries, $subquery;
 		$ds->debug_line("Generated subquery for $subquery->{label}: $subquery->{url}");
+		
+		if ( $request->has_block('subq') )
+		{
+		    $summary{$subquery->{label}." URL"} = $subquery->{url};
+		}
 	    }
 	}
     }
@@ -408,6 +425,15 @@ sub occs_list {
 	    $ds->debug_line("Status $name: $status{$name} $reason{$name}");
 	    $request->add_warning("Error received from $name: $status{$name} $reason{$name}");
 	}
+    }
+    
+    # If we have any summary information, include that.
+    
+    if ( %summary )
+    {
+	my @summary_fields = map { { field => $_, name => $_ } } keys %summary;
+	$request->{summary_field_list} = \@summary_fields;
+	$request->summary_data(\%summary);
     }
     
     # If we are running in debug mode, report how many records we received and
@@ -1034,7 +1060,7 @@ sub process_one_record {
     {
     	$record->{record_type} = 'occurrence';
     }
-    elsif ( $request->{output_vocab} eq 'neotoma' )
+    elsif ( $request->{output_vocab} eq 'neotoma' || $request->{output_vocab} eq 'dwc' )
     {
     	$record->{record_type} = 'Occurrence';
     }
@@ -1083,6 +1109,34 @@ sub process_age {
 	{
 	    $record->{AgeUnit} = 'ybp';
 	}
+    }
+}
+
+
+sub process_dwc {
+    
+    my ($request, $record) = @_;
+    
+    my @info;
+    
+    if ( defined $record->{AgeOlder} && $record->{AgeOlder} ne '' )
+    {
+	push @info, "maxAge: $record->{AgeOlder}";
+    }
+    
+    if ( defined $record->{AgeYounger} && $record->{AgeYounger} ne '' )
+    {
+	push @info, "minAge: $record->{AgeYounger}";
+    }
+    
+    if ( defined $record->{AgeUnit} )
+    {
+	push @info, "ageUnit: $record->{AgeUnit}";
+    }
+    
+    if ( @info )
+    {
+	$record->{dwc_extra} = join(' | ', @info);
     }
 }
 

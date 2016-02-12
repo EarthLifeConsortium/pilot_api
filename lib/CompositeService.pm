@@ -55,7 +55,7 @@ use NeotomaInterface;
 	{ name => 'com', title => 'Compact vocabulary' },
 	    "The compact vocabulary uses 3-character field names, to minimize",
 	    "the size of the result records.",
-	{ name => 'dwc', title => 'Darwin Core', disabled => 1 },
+	{ name => 'dwc', title => 'Darwin Core' },
 	    "The Darwin Core vocabulary follows the L<Darwin Core standard|http://www.tdwg.org/standards/450/>",
 	    "set by the L<TDWG|http://www.tdwg.org/>.  This includes both the field names and field values.",
 	    "Because the Darwin Core standard is XML-based, it is very strict.  Many",

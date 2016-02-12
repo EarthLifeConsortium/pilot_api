@@ -44,7 +44,7 @@ sub subquery_occs_list {
     
     if ( my $bbox = $request->clean_param('bbox') )
     {
-	push @params, "coords=$bbox";
+	push @params, "loc=$bbox";
     }
     
     # Then check for the occ_id && ds parameters
