@@ -10,11 +10,7 @@ package CompositeData;
 
 use strict;
 
-use AnyEvent;
-use AnyEvent::Strict;
-use AnyEvent::HTTP;
-use JSON::SL;
-use LWP::UserAgent;
+#use LWP::UserAgent;
 use HTTP::Validate qw(:validators);
 use Carp qw(carp croak);
 
@@ -41,29 +37,29 @@ sub initialize {
     # ======================
     
     $ds->define_block('1.0:occs:basic' => 
-	{ output => 'database',
-	  com_name => 'sdb', neotoma_name => 'Database', pbdb_name => 'database' },
+	{ output => 'database', com_name => 'sdb',
+	  neotoma_name => 'Database', pbdb_name => 'database', dwc_name => 'institutionCode' },
 	    "The source database from which this occurrence was retrieved.",
 	{ set => 'occurrence_no', from => 'OccurID', if_field => 'OccurID' },
-	{ output => 'occurrence_no',
-	  com_name => 'oid', neotoma_name => 'OccurrenceID', pbdb_name => 'occurrence_no' },
+	{ output => 'occurrence_no', com_name => 'oid', 
+	  neotoma_name => 'OccurrenceID', pbdb_name => 'occurrence_no', dwc_name => 'occurrenceID' },
 	    "A unique identifier assigned to this occurrence.",
-	{ output => 'record_type', 
-	  com_name => 'typ', neotoma_name => 'RecordType', pbdb_name => 'record_type' },
+	{ output => 'record_type', com_name => 'typ', 
+	  neotoma_name => 'RecordType', pbdb_name => 'record_type', dwc_name => 'basisOfRecord' },
 	    "The type of this record. The value will be C<Occurrence> for the I<Neotoma>",
 	    "vocabulary, C<occurrence> for the I<PaleoBioDB> vocabulary, and C<occ> for",
 	    "the I<Compact> vocabulary.",
-	{ output => 'DatasetID',
-	  com_name => 'dst', neotoma_name => 'DatasetID', pbdb_name => 'dataset_no' },
+	{ output => 'DatasetID', com_name => 'dst', 
+	  neotoma_name => 'DatasetID', pbdb_name => 'dataset_no', dwc_name => 'datasetID' },
 	    "The dataset with which this occurrence is associated. This field will",
 	    "be empty for occurrences from PaleoBioDB.",
 	{ set => 'accepted_name', from => 'TaxonName', if_field => 'OccurID' },
-	{ output => 'accepted_name',
-	  com_name => 'tna', neotoma_name => 'TaxonName', pbdb_name => 'accepted_name' },
+	{ output => 'accepted_name', com_name => 'tna', 
+	  neotoma_name => 'TaxonName', pbdb_name => 'accepted_name', dwc_name => 'associatedTaxa' },
 	    "The taxonomic name by which this occurrence is identified.",
 	{ set => 'accepted_no', from => 'TaxonID', if_field => 'OccurID' },
 	{ output => 'accepted_no',
-	  com_name => 'tid', neotoma_name => 'TaxonID', pbdb_name => 'acepted_no' },
+	  com_name => 'tid', neotoma_name => 'TaxonID', pbdb_name => 'accepted_no' },
 	    "The unique identifier of this taxonomic name in the source database.",
 	{ output => 'AgeOlder', 
 	  com_name => 'eag', neotoma_name => 'AgeOlder', pbdb_name => 'max_age' },
@@ -82,32 +78,42 @@ sub initialize {
 	#     "The name of the site (SiteName for Neotoma, collection_name for",
 	#     "PaleoBioDB) where this occurrence is located.",
 	{ set => 'collection_no', from => 'SiteID', if_field => 'SiteID' },
-	{ output => 'collection_no',
-	  com_name => 'cid', neotoma_name => 'SiteID', pbdb_name => 'collection_no' },
+	{ output => 'collection_no', com_name => 'cid', 
+	  neotoma_name => 'SiteID', pbdb_name => 'collection_no', dwc_name => 'collectionID' },
 	    "The identifier of the site (SiteID for Neotoma, collection_no",
 	    "for PaleoBioDB) where this occurrence is located.",
+	{ set => '*', code => \&process_dwc, if_vocab => 'dwc' },
+	{ output => 'dwc_extra', dwc_name => 'occurrenceRemarks' },
+	    "Information for which the Darwin Core standard has no corresponding term.",
 	);
     
     $ds->define_set('1.0:occs:basic_map' => 
 	{ value => 'loc', maps_to => '1.0:occs:loc' },
-	    "The geographic location of the occurrence");
+	    "The geographic location of the occurrence",
+	{ value => 'subq' },
+	    "The URLs that were sent to the underlying databases in order",
+	    "to generate these results");
     
     $ds->define_block('1.0:occs:loc' =>
 	{ set => 'collection_name', from => 'SiteName', if_field => 'OccurID' },
 	{ output => 'collection_name', neotoma_name => 'SiteName', com_name => 'cnn',
-	  pbdb_name => 'collection_name' },
+	  pbdb_name => 'collection_name', dwc_name => 'verbatimLocality' },
 	    "The name of the site at which the occurrence is located.  This",
 	    "reports the C<SiteName> from Neotoma occurrences, and the",
 	    "C<collection_name> for PaleoBioDB occurrences.",
 	{ set => '*', code => \&NeotomaInterface::process_coords, if_field => 'OccurID' },	
-	{ output => 'lng', neotoma_name => 'Longitude', com_name => 'lng', pbdb_name => 'lng' },
+	{ output => 'lng', neotoma_name => 'Longitude', com_name => 'lng',
+	  pbdb_name => 'lng', dwc_name => 'decimalLongitude' },
 	    "The longitude of the site at which the occurrence is located.",
-	{ output => 'lat', neotoma_name => 'Latitude', com_name => 'lat', pbdb_name => 'lat' },
+	{ output => 'lat', neotoma_name => 'Latitude', com_name => 'lat', 
+	  pbdb_name => 'lat', dwc_name => 'decimalLatitude' },
 	    "The latitude of the site at which the occurrence is located.",
-	{ output => 'cc', com_name => 'cc2', pbdb_name => 'country', neotoma_name => 'Country' },
+	{ output => 'cc', com_name => 'cc2', pbdb_name => 'country', 
+	  neotoma_name => 'Country', dwc_name => 'countryCode' },
 	    "The country in which the occurrence is located, encoded as",
 	    "L<ISO-3166-1 alpha-2|https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>",
-	{ output => 'state', com_name => 'stp', pbdb_name => 'state', neotoma_name => 'State' },
+	{ output => 'state', com_name => 'stp', pbdb_name => 'state', neotoma_name => 'StateProvince',
+	  dwc_name => 'stateProvince' },
 	    "The state or province in which the collection is located, if known");
     
     $ds->define_set('1.0:subservices' =>
@@ -271,7 +277,7 @@ sub initialize {
 
 # occs_list ( )
 # 
-# Lists of fossil occurrences
+# Query for lists of fossil occurrences
 
 sub occs_list {
 
@@ -288,171 +294,63 @@ sub occs_list {
     $request->ds_param();    
     $request->time_params();
     
-    # First create URLs for the various constituent services, based on the
-    # parameters given to this operation.
+    # Create a new composite query object, which will handle the coordination
+    # between the coroutines that will make the necessary queries and process
+    # the results.
     
-    my (%url, %obj, @raw, @subqueries, %status, %reason, %pending);
+    my $composite_query = CompositeQuery->new($request, $CompositeService::TIMEOUT);
     
-    my $ds = $request->ds;
-    # my @constituents = ;
-    
-    # We loop over the available constituent modules.  For each one which can
-    # do the 'make_occs_list' method, we generate a subquery object. This
-    # method generates the appropriate URL for the subquery.
+    # We now loop over the list of available subservices.  For each one, we
+    # set up a coroutine which will be responsible for sending off the query
+    # and collecting up the results.
     
     foreach my $subservice ( @CompositeService::SERVICES )
     {
-	if ( $subservice->can('subquery_occs_list') )
-	{
-	    my $subquery = $subservice->subquery_occs_list($request);
-	    
-	    if ( $subquery )
-	    {
-		push @subqueries, $subquery;
-		$ds->debug_line("Generated subquery for $subquery->{label}: $subquery->{url}");
-	    }
-	}
-    }
-    
-    # Now fire off each of these subqueries and collect up the
-    # results. We start by setting up a condition variable that will be
-    # triggered when all of the queries are finished, and a timer which will
-    # trigger that condition variable if the overall timeout expires.
-    
-    my $subquery_condition = AnyEvent->condvar;
-    
-    my $fallback = AnyEvent->timer (
-	after => $CompositeService::TIMEOUT,
-        cb => sub { $subquery_condition->send("TIMEOUT"); } );
-    
-    # We then call 'begin' on this condition variable, according to the
-    # AnyEvent documentation: https://metacpan.org/pod/AnyEvent#METHODS FOR PRODUCERS
-    # This will increment a counter associated with the condition
-    # variable, and is matched by the 'end' that comes after the subquery
-    # loop.
-    
-    $subquery_condition->begin;
-    
-    # We now loop over the list of subquery objects. We fire off each query using
-    # AnyEvent::HTTP, with callbacks to process the result data as it comes
-    # in. We do this on a chunk-by-chunk basis, because the subquery results
-    # may be very long. We are planning for future development in which we may want to
-    # send the results back to the client as they are received rather than
-    # collecting them all up and processing them together.
-    
-    foreach my $sq (@subqueries)
-    {
-	my $url = $sq->{url};
-	next unless $url;
+	next unless $subservice->can('init_occs_list');
 	
-	my $label = $sq->{label};
-	
-	# We call 'begin' for each subquery, which will increment the counter
-	# associated with the condition variable.
-	
-	$subquery_condition->begin;
-	
-	# Initiate each query, with two callbacks. The first handles each
-	# chunk of incoming data, and the second is called on query
-	# completion. This second callback in turn calls 'end' on the subquery
-	# condition variable, which decrements the counter to indicate
-	# completion of this query. The first argument passed to each callback
-	# holds body data, which is passed to the process_occs_list routine.
-	
-	$sq->{subrequest} =
-	http_request ( GET => $url,
-		       on_body => 
-		       sub { push @raw, $sq->process_occs_list($request, $_[0]);
-		       	     # $ds->debug_line("GOT CHUNK: $label");
-			     # $ds->debug_line($_[0]);
-			     return 1;
-			 },
-		       sub { my ($body, $headers) = @_;
-			     $ds->debug_line("COMPLETE: $label");
-			     # $ds->debug_line($body) if $body;
-			     $status{$label} //= $headers->{Status};
-			     $reason{$label} //= $headers->{Reason};
-			     push @raw, $sq->process_occs_list($request, $body)
-				 if defined $body && $body ne '';
-			     $subquery_condition->end; } );
+	$subservice->new_subquery($composite_query,
+				  init_method => 'init_occs_list', 
+				  proc_method => 'process_occs_list');
     }
     
-    # Finally, we call 'end' on the condition variable to balance the initial
-    # call to 'begin'.  At this point, whenever all of the subqueries
-    # complete, the counter will return to zero and the condition variable
-    # will be automatically signaled.
+    # Run this composite query, and wait for results to come back.
     
-    $subquery_condition->end;
+    $composite_query->run;
     
-    # The following call will block until the condition variable is signaled
-    # when the final query completes (or alternatively when the fallback
-    # timeout expires).
+    # If we were asked to, collect up all of the URLs that were used to query
+    # the subservices so that we can document how this request was satisfied.
     
-    my $event = $subquery_condition->recv;
-    
-    # At this point, we have the results of all subqueries. Unless, that is,
-    # the fallback timeout expired in which case we have all of the results
-    # that we are going to get...
-    
-    my $count = @raw;
-    # $ds->debug_line("Found $count results");
-    # $ds->debug_line("Event = $event") if $event;
-    
-    # If any of the queries returned a status code indicating non-success,
-    # then add a warning to our result.
-    
-    foreach my $name ( keys %status )
+    if ( $request->has_block('subq') )
     {
-	if ( $status{$name} !~ /^2\d\d/ )
-	{
-	    $ds->debug_line("Status $name: $status{$name} $reason{$name}");
-	    $request->add_warning("Error received from $name: $status{$name} $reason{$name}");
-	}
+	$composite_query->summarize_urls;
     }
     
-    # If we are running in debug mode, report how many records we received and
-    # how many were filtered out.
+    # Then collect up the results received from the various subservices and do
+    # the necessary processing to enable them to be displayed consistently
+    # according to the output field definitions for the composite data service.
     
-    if ( $request->{pbdb_count} )
-    {
-	$ds->debug_line("FOUND PBDB: $request->{pbdb_count} records");
-    }
+    my @records = $composite_query->results;
     
-    if ( $request->{pbdb_removed} )
-    {
-	$ds->debug_line("REMOVED PBDB: $request->{pbdb_count} records");
-    }
-    
-    if ( $request->{neotoma_count} )
-    {
-	$ds->debug_line("FOUND NEOTOMA: $request->{neotoma_count} records");
-    }
-    
-    if ( $request->{neotoma_removed} )
-    {
-	$ds->debug_line("REMOVED NEOTOMA: $request->{neotoma_removed} records")
-    }
-    
-    # Process ages and other fields
-    
-    foreach my $r (@raw)
+    foreach my $r (@records)
     {
 	$request->process_one_record($r);
     }
     
     # If we were requested to sort the results, do so now.
     
-    my $order_sub = $request->generate_order_sub();
+    my $order_sub = $request->generate_order_sub;
     
     if ( ref $order_sub eq 'CODE' )
     {
-	my @sorted = sort $order_sub @raw;
+	my @sorted = sort $order_sub @records;
 	$request->add_result(@sorted);
     }
     
+    # Otherwise, just report the records in the order we have them.
+    
     else
     {
-	$request->add_result(@raw);
+	$request->add_result(@records);
     }
     
     my $a = 1;	# we can stop here when debugging    
@@ -461,7 +359,7 @@ sub occs_list {
 
 # occs_single ( )
 # 
-# Single fossil occurrence
+# Query for a single fossil occurrence
 
 sub occs_single {
 
@@ -477,149 +375,58 @@ sub occs_single {
     
     $request->ds_param();    
     
-    # First create URLs for the various constituent services, based on the
-    # parameters given to this operation.
+    # Create a new composite query object, which will handle the coordination
+    # between the coroutines that will make the necessary queries and process
+    # the results.
     
-    my (%url, %obj, @raw, @subqueries, %status, %reason, %pending);
+    my $composite_query = CompositeQuery->new($request, $CompositeService::TIMEOUT);
     
-    my $ds = $request->ds;
-    # my @constituents = ;
-    
-    # We loop over the available constituent modules.  For each one which can
-    # do the 'make_occs_list' method, we generate a subquery object. This
-    # method generates the appropriate URL for the subquery.
+    # We now loop over the list of available subservices.  For each one, we
+    # set up a coroutine which will be responsible for sending off the query
+    # and collecting up the results.
     
     foreach my $subservice ( @CompositeService::SERVICES )
     {
-	if ( $subservice->can('subquery_occs_single') )
+	next unless $subservice->can('init_occs_single');
+	
+	$subservice->new_subquery($composite_query,
+				  init_method => 'init_occs_single', 
+				  proc_method => 'process_occs_list');
+    }
+    
+    # Run this composite query, and wait for results to come back.
+    
+    $composite_query->run;
+    
+    # If we were asked to, collect up all of the URLs that were used to query
+    # the subservices so that we can document how this request was satisfied.
+    
+    if ( $request->has_block('subq') )
+    {
+	$composite_query->summarize_urls;
+    }
+    
+    # Then grab the record received and process it. If we got more than one
+    # record, something is wrong so add a warning.
+    
+    my ($record, $extra) = $composite_query->results;
+    
+    if ( $record )
+    {
+	$request->process_one_record($record);
+	
+	if ( $extra )
 	{
-	    my $subquery = $subservice->subquery_occs_single($request);
-	    
-	    if ( $subquery )
-	    {
-		push @subqueries, $subquery;
-		$ds->debug_line("Generated subquery for $subquery->{label}: $subquery->{url}");
-	    }
+	    $request->add_warning("More than one record was received from the constituent services, which could indicate a problem.");
 	}
-    }
-    
-    # Now fire off each of these subqueries and collect up the
-    # results. We start by setting up a condition variable that will be
-    # triggered when all of the queries are finished, and a timer which will
-    # trigger that condition variable if the overall timeout expires.
-    
-    my $subquery_condition = AnyEvent->condvar;
-    
-    my $fallback = AnyEvent->timer (
-	after => $CompositeService::TIMEOUT,
-        cb => sub { $subquery_condition->send("TIMEOUT"); } );
-    
-    # We then call 'begin' on this condition variable, according to the
-    # AnyEvent documentation: https://metacpan.org/pod/AnyEvent#METHODS FOR PRODUCERS
-    # This will increment a counter associated with the condition
-    # variable, and is matched by the 'end' that comes after the subquery
-    # loop.
-    
-    $subquery_condition->begin;
-    
-    # We now loop over the list of subquery objects. We fire off each query using
-    # AnyEvent::HTTP, with callbacks to process the result data as it comes
-    # in. We do this on a chunk-by-chunk basis, because the subquery results
-    # may be very long. We are planning for future development in which we may want to
-    # send the results back to the client as they are received rather than
-    # collecting them all up and processing them together.
-    
-    foreach my $sq (@subqueries)
-    {
-	my $url = $sq->{url};
-	next unless $url;
 	
-	my $label = $sq->{label};
-	
-	# We call 'begin' for each subquery, which will increment the counter
-	# associated with the condition variable.
-	
-	$subquery_condition->begin;
-	
-	# Initiate each query, with two callbacks. The first handles each
-	# chunk of incoming data, and the second is called on query
-	# completion. This second callback in turn calls 'end' on the subquery
-	# condition variable, which decrements the counter to indicate
-	# completion of this query. The first argument passed to each callback
-	# holds body data, which is passed to the process_occs_list routine.
-	
-	$sq->{subrequest} =
-	http_request ( GET => $url,
-		       on_body => 
-		       sub { push @raw, $sq->process_occs_list($request, $_[0]);
-		       	     # $ds->debug_line("GOT CHUNK: $label");
-			     # $ds->debug_line($_[0]);
-			     return 1;
-			 },
-		       sub { my ($body, $headers) = @_;
-			     $ds->debug_line("COMPLETE: $label");
-			     # $ds->debug_line($body) if $body;
-			     $status{$label} //= $headers->{Status};
-			     $reason{$label} //= $headers->{Reason};
-			     push @raw, $sq->process_occs_list($request, $body)
-				 if defined $body && $body ne '';
-			     $subquery_condition->end; } );
+	$request->add_result($record);
     }
     
-    # Finally, we call 'end' on the condition variable to balance the initial
-    # call to 'begin'.  At this point, whenever all of the subqueries
-    # complete, the counter will return to zero and the condition variable
-    # will be automatically signaled.
-    
-    $subquery_condition->end;
-    
-    # The following call will block until the condition variable is signaled
-    # when the final query completes (or alternatively when the fallback
-    # timeout expires).
-    
-    my $event = $subquery_condition->recv;
-    
-    # At this point, we have the results of all subqueries. Unless, that is,
-    # the fallback timeout expired in which case we have all of the results
-    # that we are going to get...
-    
-    my $count = @raw;
-    # $ds->debug_line("Found $count results");
-    # $ds->debug_line("Event = $event") if $event;
-    
-    # If any of the queries returned a status code indicating non-success,
-    # then add a warning to our result.
-    
-    foreach my $name ( keys %status )
+    else
     {
-	if ( $status{$name} !~ /^2\d\d/ )
-	{
-	    $ds->debug_line("Status $name: $status{$name} $reason{$name}");
-	    $request->add_warning("Error received from $name: $status{$name} $reason{$name}");
-	}
+	die "404 Not Found\n";
     }
-    
-    # If we are running in debug mode, report how many records we received and
-    # how many were filtered out.
-    
-    if ( $request->{pbdb_count} )
-    {
-	$ds->debug_line("FOUND PBDB: $request->{pbdb_count} records");
-    }
-    
-    if ( $request->{neotoma_count} )
-    {
-	$ds->debug_line("FOUND NEOTOMA: $request->{neotoma_count} records");
-    }
-    
-    # Process ages and other fields
-    
-    foreach my $r (@raw)
-    {
-	$request->process_one_record($r);
-    }
-    
-    $request->add_result(@raw);
     
     my $a = 1;	# we can stop here when debugging
 }
@@ -1034,7 +841,7 @@ sub process_one_record {
     {
     	$record->{record_type} = 'occurrence';
     }
-    elsif ( $request->{output_vocab} eq 'neotoma' )
+    elsif ( $request->{output_vocab} eq 'neotoma' || $request->{output_vocab} eq 'dwc' )
     {
     	$record->{record_type} = 'Occurrence';
     }
@@ -1087,6 +894,34 @@ sub process_age {
 }
 
 
+sub process_dwc {
+    
+    my ($request, $record) = @_;
+    
+    my @info;
+    
+    if ( defined $record->{AgeOlder} && $record->{AgeOlder} ne '' )
+    {
+	push @info, "maxAge: $record->{AgeOlder}";
+    }
+    
+    if ( defined $record->{AgeYounger} && $record->{AgeYounger} ne '' )
+    {
+	push @info, "minAge: $record->{AgeYounger}";
+    }
+    
+    if ( defined $record->{AgeUnit} )
+    {
+	push @info, "ageUnit: $record->{AgeUnit}";
+    }
+    
+    if ( @info )
+    {
+	$record->{dwc_extra} = join(' | ', @info);
+    }
+}
+
+
 # check for valid bbox parameter values
 
 sub valid_bbox {
@@ -1110,6 +945,203 @@ sub valid_bbox {
     
     return { value => join(',', @coords) };
 }
+
+
+# old code
+
+# sub old {
+    
+#     my ($request);
+    
+#     # First create URLs for the various constituent services, based on the
+#     # parameters given to this operation.
+    
+#     my (%url, %obj, @raw, @subqueries, %status, %reason, %pending);
+    
+#     my $ds = $request->ds;
+#     # my @constituents = ;
+    
+#     my %summary;
+    
+#     # We loop over the available constituent modules.  For each one which can
+#     # do the 'make_occs_list' method, we generate a subquery object. This
+#     # method generates the appropriate URL for the subquery.
+    
+#     foreach my $subservice ( @CompositeService::SERVICES )
+#     {
+# 	if ( $subservice->can('subquery_occs_list') )
+# 	{
+# 	    my $subquery = $subservice->subquery_occs_list($request);
+	    
+# 	    if ( $subquery )
+# 	    {
+# 		push @subqueries, $subquery;
+# 		$ds->debug_line("Generated subquery for $subquery->{label}: $subquery->{url}");
+		
+# 		if ( $request->has_block('subq') )
+# 		{
+# 		    $summary{$subquery->{label}." URL"} = $subquery->{url};
+# 		}
+# 	    }
+# 	}
+#     }
+    
+#     # Now fire off each of these subqueries and collect up the
+#     # results. We start by setting up a condition variable that will be
+#     # triggered when all of the queries are finished, and a timer which will
+#     # trigger that condition variable if the overall timeout expires.
+    
+#     my $subquery_condition = AnyEvent->condvar;
+    
+#     my $fallback = AnyEvent->timer (
+# 	after => $CompositeService::TIMEOUT,
+#         cb => sub { $subquery_condition->send("TIMEOUT"); } );
+    
+#     # We then call 'begin' on this condition variable, according to the
+#     # AnyEvent documentation: https://metacpan.org/pod/AnyEvent#METHODS FOR PRODUCERS
+#     # This will increment a counter associated with the condition
+#     # variable, and is matched by the 'end' that comes after the subquery
+#     # loop.
+    
+#     $subquery_condition->begin;
+    
+#     # We now loop over the list of subquery objects. We fire off each query using
+#     # AnyEvent::HTTP, with callbacks to process the result data as it comes
+#     # in. We do this on a chunk-by-chunk basis, because the subquery results
+#     # may be very long. We are planning for future development in which we may want to
+#     # send the results back to the client as they are received rather than
+#     # collecting them all up and processing them together.
+    
+#     my $subquery_count;
+    
+#     while (@subqueries)
+#     {
+# 	my $sq = shift @subqueries;
+# 	my $url = $sq->{url};
+# 	next unless $url;
+	
+# 	my $label = $sq->{label};
+	
+# 	# We call 'begin' for each subquery, which will increment the counter
+# 	# associated with the condition variable.
+	
+# 	$subquery_condition->begin;
+	
+# 	# Initiate each query, with two callbacks. The first handles each
+# 	# chunk of incoming data, and the second is called on query
+# 	# completion. This second callback in turn calls 'end' on the subquery
+# 	# condition variable, which decrements the counter to indicate
+# 	# completion of this query. The first argument passed to each callback
+# 	# holds body data, which is passed to the process_occs_list routine.
+	
+# 	$sq->{subrequest} =
+# 	http_request ( GET => $url,
+# 		       on_body => 
+# 		       sub { push @raw, $sq->process_occs_list($request, $_[0]);
+# 		       	     # $ds->debug_line("GOT CHUNK: $label");
+# 			     # $ds->debug_line($_[0]);
+# 			     return 1;
+# 			 },
+# 		       sub { my ($body, $headers) = @_;
+# 			     $ds->debug_line("COMPLETE: $label");
+# 			     # $ds->debug_line($body) if $body;
+# 			     $status{$label} //= $headers->{Status};
+# 			     $reason{$label} //= $headers->{Reason};
+# 			     push @raw, $sq->process_occs_list($request, $body)
+# 				 if defined $body && $body ne '';
+# 			     $subquery_condition->end; } );
+#     }
+    
+#     # Finally, we call 'end' on the condition variable to balance the initial
+#     # call to 'begin'.  At this point, whenever all of the subqueries
+#     # complete, the counter will return to zero and the condition variable
+#     # will be automatically signaled.
+    
+#     $subquery_condition->end;
+    
+#     # The following call will block until the condition variable is signaled
+#     # when the final query completes (or alternatively when the fallback
+#     # timeout expires).
+    
+#     my $event = $subquery_condition->recv;
+    
+#     # At this point, we have the results of all subqueries. Unless, that is,
+#     # the fallback timeout expired in which case we have all of the results
+#     # that we are going to get...
+    
+#     my $count = @raw;
+#     # $ds->debug_line("Found $count results");
+#     # $ds->debug_line("Event = $event") if $event;
+    
+#     # If any of the queries returned a status code indicating non-success,
+#     # then add a warning to our result.
+    
+#     foreach my $name ( keys %status )
+#     {
+# 	if ( $status{$name} !~ /^2\d\d/ )
+# 	{
+# 	    $ds->debug_line("Status $name: $status{$name} $reason{$name}");
+# 	    $request->add_warning("Error received from $name: $status{$name} $reason{$name}");
+# 	}
+#     }
+    
+#     # If we have any summary information, include that.
+    
+#     if ( %summary )
+#     {
+# 	my @summary_fields = map { { field => $_, name => $_ } } keys %summary;
+# 	$request->{summary_field_list} = \@summary_fields;
+# 	$request->summary_data(\%summary);
+#     }
+    
+#     # If we are running in debug mode, report how many records we received and
+#     # how many were filtered out.
+    
+#     if ( $request->{pbdb_count} )
+#     {
+# 	$ds->debug_line("FOUND PBDB: $request->{pbdb_count} records");
+#     }
+    
+#     if ( $request->{pbdb_removed} )
+#     {
+# 	$ds->debug_line("REMOVED PBDB: $request->{pbdb_count} records");
+#     }
+    
+#     if ( $request->{neotoma_count} )
+#     {
+# 	$ds->debug_line("FOUND NEOTOMA: $request->{neotoma_count} records");
+#     }
+    
+#     if ( $request->{neotoma_removed} )
+#     {
+# 	$ds->debug_line("REMOVED NEOTOMA: $request->{neotoma_removed} records")
+#     }
+    
+#     # Process ages and other fields
+    
+#     foreach my $r (@raw)
+#     {
+# 	$request->process_one_record($r);
+#     }
+    
+#     # If we were requested to sort the results, do so now.
+    
+#     my $order_sub = $request->generate_order_sub();
+    
+#     if ( ref $order_sub eq 'CODE' )
+#     {
+# 	my @sorted = sort $order_sub @raw;
+# 	$request->add_result(@sorted);
+#     }
+    
+#     else
+#     {
+# 	$request->add_result(@raw);
+#     }
+    
+#     my $a = 1;	# we can stop here when debugging    
+# }
+
 
 
 1;

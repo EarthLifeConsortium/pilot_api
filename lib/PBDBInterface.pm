@@ -13,9 +13,9 @@ use parent 'BaseInterface';
 our ($SERVICE_LABEL) = 'pbdb';
 
 
-sub subquery_occs_list {
+sub init_occs_list {
     
-    my ($subservice, $request) = @_;
+    my ($subquery, $request) = @_;
     
     my @params;
     
@@ -237,20 +237,19 @@ sub subquery_occs_list {
     # Create the necessary objects to execute a query on the PaleoBioDB and
     # parse the results.
     
-    my $json_parser = JSON::SL->new(10);
-    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+    # my $json_parser = JSON::SL->new(10);
+    # $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+    
+    # $subquery->{parser} = $json_parser;
     
     my $url = $request->ds->config_value('pbdb_base') . 'occs/list.json?';
     $url .= join('&', @params);
     
-    my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
-					      request => $request );
-    
-    return $subquery;
+    return $url;
 }
 
 
-sub subquery_occs_single {
+sub init_occs_single {
 
     my ($subservice, $request) = @_;
     
@@ -323,26 +322,25 @@ sub subquery_occs_single {
     # Create the necessary objects to execute a query on the PaleoBioDB and
     # parse the results.
     
-    my $json_parser = JSON::SL->new(10);
-    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+    # my $json_parser = JSON::SL->new(10);
+    # $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
     
-    my $url = $request->ds->config_value('pbdb_base') . 'occs/list.json?';
+    my $url = $request->ds->config_value('pbdb_base') . 'occs/single.json?';
     $url .= join('&', @params);
     
-    my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
-					      request => $request );
+    # my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
+    # 					      request => $request );
     
-    return $subquery;
+    return $url;
 }
 
 
 sub process_occs_list {
     
-    my $subquery = shift;
+    my ($subquery, $request, $body, $headers) = @_;
     
-    my @extracted = $subquery->process_json($_[1]);
+    my @extracted = $subquery->process_json($body);
     my (@records, @warnings);
-    my $request = $subquery->{request};
     
     foreach my $r (@extracted)
     {
@@ -409,6 +407,22 @@ sub process_pbdb_age {
     }
 }
 
+
+# generate_parser ( request, format )
+# 
+# This method must return a parser object which will be used to parse the
+# subquery response, or else the undefined value if no parser is needed or
+# none is available.
+
+sub generate_parser {
+    
+    my ($subquery, $request) = @_;
+    
+    my $json_parser = JSON::SL->new(10);
+    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+    
+    return $json_parser;
+}
 
 
 1;

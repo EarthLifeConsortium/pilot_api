@@ -34,8 +34,6 @@ unless ( $ERROR_LOG =~ qr{/} )
     $ERROR_LOG = "logs/$ERROR_LOG";
 }
 
-# $ENV{DANCER_CONFDIR} = './composite';
-
 exec('/opt/local/bin/starman', 
      '--listen', ":$PORT", '--workers', $WORKERS, '--access-log', $ACCESS_LOG, '--error-log', $ERROR_LOG,
      'bin/web_composite.pl')
