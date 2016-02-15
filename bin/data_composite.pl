@@ -28,8 +28,6 @@ unless ( $ACCESS_LOG =~ qr{/} )
     $ACCESS_LOG = "logs/$ACCESS_LOG";
 }
 
-$ENV{DANCER_CONFDIR} = './composite';
-
 exec('/opt/local/bin/starman', 
      '--listen', ":$PORT", '--workers', $WORKERS, '--access-log', $ACCESS_LOG, 
      'bin/web_composite.pl')
