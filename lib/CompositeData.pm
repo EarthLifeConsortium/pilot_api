@@ -179,10 +179,12 @@ sub initialize {
 	    "Return information about the specified occurence.  If the",
 	    "occurrence identifier does not include a prefix specifying",
 	    "which database it belongs to, you must also specify the",
-	    "parameter B<C<ds>>.",
+	    "parameter B<C<ds>>. For example, the value C<pbdb:occ:213110>",
+	    "does not require the B<C<ds>> parameter, but the value C<213110> does.",
 	{ optional => 'ds', valid => '1.0:subservices' },
 	    "Select the database in which the desired occurrence",
-	    "is located.");
+	    "is located. If the value of C<occ_id> does not specify a database,",
+	    "then the value of this parameter must be B<one> of the following:");
     
     $ds->define_set('1.0:timerules' =>
 	{ value => 'contain' },
@@ -260,7 +262,7 @@ sub initialize {
     $ds->define_ruleset('1.0:occs:single' =>
 	"You must specify the following parameters:",
 	{ require => '1.0:occs:specifier' },
-	"The following parameters control how the results will be presented:",
+	">>The following parameters control how the results will be presented:",
 	{ optional => 'ageunit', valid => '1.0:age_units' },
 	    "Report the age ranges for occurrences using the specified units.",
 	    "If this parameter is not given, then each range will be reported",
