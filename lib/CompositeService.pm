@@ -1,5 +1,5 @@
 # 
-# Neotoma Example Data Service
+# PaleoBioDB/Neotoma Composite Data Service
 # 
 # This application configures a data service that queries the Neotoma
 # Database (MySQL version).  It is implemented using the Perl Dancer
@@ -113,7 +113,7 @@ use NeotomaInterface;
 			public_access => 1,
 			doc_default_op_template => 'operation.tt',
 			allow_format => 'json,csv,tsv,txt',
-			allow_vocab => 'neotoma',
+			allow_vocab => 'neotoma,pbdb,dwc,com',
 			default_save_filename => 'neotoma_data',
 			title => 'Documentation' });
     

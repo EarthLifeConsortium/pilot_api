@@ -1,13 +1,20 @@
 =encoding utf8
 
 =begin html
+
 <div class="banner">
-   <img id="logo" src="<% URL('path:images/Packrat.png') %>">
-   <h1 id="title">Neotoma Data Service: <% doc_title %></h1>
+   <table width="100%" border="0" cellpadding="0"><tr>
+     <td width="120"><img id="neotoma_logo" width="100" src="<% URL('path:images/Packrat.png') %>"></td>
+     <td class="banner" align="center">
+         <h1 id="title"><% doc_title %></h1>
+         <h2 id="subtitle">PaleoBioDB/Neotoma Composite Data Service:</h2></td>
+     <td width="120"><img id="paleobiodb_log" width="80" src="<% URL('path:images/PaleoBioDB.png') %>"></td>
+   </tr></table>
 </div>
+
 =end html
 
-=for wds_title Neotoma Data Service: <% doc_title %>
+=for wds_title Composite Data Service: <% doc_title %>
 
 <% NAVTRAIL %>
 
