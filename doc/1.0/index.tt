@@ -1,6 +1,6 @@
 
-This is an example data service, built to demonstrate the provision of 
-data from the Neotoma database using the Web::DataService framework.
+This is proof-of-concept data service, built to demonstrate the provision of 
+combined data from the Neotoma database and Paleobiology Database. 
 
 =head2 OPERATIONS
 
