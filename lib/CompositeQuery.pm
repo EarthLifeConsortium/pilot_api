@@ -125,7 +125,7 @@ sub generate_timer_callback {
     return sub { 
 	return unless defined $self;
 	my $elapsed = AE::time - $self->{start};
-	print STDERR "TICK $elapsed\n"; 
+	# print STDERR "TICK $elapsed\n"; 
 	if ( $elapsed > $timeout )
 	{
 	    $self->{cv_finished}->send('TIMEOUT');
