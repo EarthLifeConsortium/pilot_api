@@ -17,6 +17,7 @@ use CommonData;
 use ConfigData;
 use CompositeData;
 
+use CompositeQuery;
 use PBDBInterface;
 use NeotomaInterface;
 
@@ -37,7 +38,7 @@ use NeotomaInterface;
     # constituent services.
     
     our (@SERVICES) = qw(PBDBInterface NeotomaInterface);
-    our ($TIMEOUT) = $ds0->config_value("composite_timeout") || 60;
+    our ($TIMEOUT) = $ds0->config_value("composite_timeout") || 30;
     
     print STDERR "Overall timeout: $TIMEOUT\n";
     

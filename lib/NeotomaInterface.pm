@@ -5,20 +5,28 @@ use strict;
 package NeotomaInterface;
 
 use JSON::SL;
+use Try::Tiny;
+use URLParam;
 
+use parent 'CompositeSubquery';
 
-use parent 'BaseInterface';
-
-our ($SERVICE_LABEL) = 'neotoma';
+our ($SERVICE_LABEL) = 'Neotoma';
 
 
 my ($VALID_AGE) = qr{ ^ (?: \d+ | \d+ [.] \d* | \d* [.] \d+ ) $ }xs;
 
 sub init_occs_list {
     
-    my ($subservice, $request) = @_;
+    my ($subquery, $request) = @_;
     
     my @params;
+    
+    # First check which databases we are supposed to be querying.
+    
+    if ( ref $request->{ds_hash} eq 'HASH' )
+    {
+	return unless $request->{ds_hash}{neotoma};
+    }
     
     # Process the taxon name parameter, if any
     
@@ -40,18 +48,68 @@ sub init_occs_list {
 	push @params, "nametype=match";
     }
     
+    elsif ( my $id = $request->clean_param('base_id') || $request->clean_param('taxon_id') )
+    {
+	my $nametype = 'base';
+	$nametype = 'tax' if $request->param_given('taxon_id');
+	
+	my $param = 'base_id';
+	$param = 'taxon_id' if $request->param_given('taxon_id');
+	
+	if ( ref $id eq 'Composite::ExtIdent' )
+	{
+	    unless ( $id->{domain} )
+	    {
+		$request->add_warning("The value of '$param' cannot be interpreted because it is ambiguous as to which database it belongs to");
+		return;
+	    }
+	    
+	    elsif ( $id->{domain} eq 'pbdb' )
+	    {
+		if ( PBDBInterface->can('init_taxa_single') )
+		{
+		    my $cq = $subquery->{cq};
+		    my $sq = PBDBInterface->new_subquery($cq, secondary => 1,
+							 init_method => 'init_taxa_single',
+							 proc_method => 'proc_taxa_list');
+		    
+		    $sq->{cv_done}->recv;
+		    
+		    my ($taxon_record) = @{$sq->{records}};
+		    
+		    unless ( $sq->{http_status} eq '200' && ref $taxon_record )
+		    {
+			my $reason = $sq->{http_reason} || 'unknown response';
+			$request->add_warning("Error looking up taxon '$id': $reason");
+			return;
+		    }
+		    
+		    my $taxon_name = $taxon_record->{taxon_name};
+		    push @params, "taxonname=$taxon_name";
+		    push @params, "nametype=$nametype";
+		}
+	    }
+	    
+	    elsif ( $id->{domain} eq 'neotoma' )
+	    {
+		
+		push @params, "taxonids=$id->{num}";
+		push @params, "nametype=$nametype";
+	    }
+	}
+	
+	else
+	{
+	    push @params, "taxonids=$id";
+	    push @params, "nametype=$nametype";
+	}
+    }
+    
     # Check for bbox parameter if any
     
     if ( my $bbox = $request->clean_param('bbox') )
     {
 	push @params, "bbox=$bbox";
-    }
-    
-    # Then check for the occ_id && ds parameters
-    
-    if ( ref $request->{ds_hash} eq 'HASH' )
-    {
-	return unless $request->{ds_hash}{neotoma};
     }
     
     if ( my @occ_ids = $request->clean_param_list('occ_id') )
@@ -218,7 +276,7 @@ sub init_occs_list {
 
 sub init_occs_single {
 
-    my ($subservice, $request) = @_;
+    my ($subquery, $request) = @_;
     
     my @params;
     
@@ -301,63 +359,51 @@ sub init_occs_single {
 
 sub process_occs_list {
     
-    my ($subquery, $request, $body, $headers) = @_;
+    my $subquery = shift;
     
-    my @extracted = $subquery->process_json($body);
-    my (@records, @warnings);
+    $subquery->process_json(@_);
     
-    foreach my $r (@extracted)
-    {
-	if ( $r->{Path} =~ /data/ )
-	{
-	    push @records, $r->{Value};
-	}
-	
-	elsif ( $r->{Path} =~ /success/ )
-	{
-	   push @warnings, "Neotoma: Request failed" unless $r->{Value};
-	}
-	
-	elsif ( $r->{Path} =~ /message/ )
-	{
-	    push @warnings, "Neotoma: $r->{Value}";
-	}
-    }
-    
-    my $count = scalar(@records);
-    my $wcount = scalar(@warnings);
-    
-    my $message = "Got NEOTOMA response chunk: $count records";
-    $message .= " $wcount warnings" if $wcount;
-    $message .= " STATUS $request->{status}" if $request->{status} && $request->{status} ne '200';
+    my $count = scalar($subquery->records);
+    my $request = $subquery->request;
+        
+    # my $message = "Got NEOTOMA response chunk: $count records";
+    # $message .= " $wcount warnings" if $wcount;
+    # $message .= " STATUS $request->{status}" if $request->{status} && $request->{status} ne '200';
     
     # $request->ds->debug_line($message);
     
-    $request->add_warning(@warnings) if @warnings;
+    # if ( my @warnings = $subquery->warnings )
+    # {
+    # 	$request->add_warning(@warnings);
+    # }
     
-    # Before we return the results, see if we might need to filter the results.
+    $request->{neotoma_count} += $count;
     
-    $request->{neotoma_count} += scalar(@records);
+    # Process the results and return them.
+    
+    # my @records = $subquery->records;
     
     my $ageunit = $request->clean_param('ageunit');
     
-    foreach my $r (@records)
-    {
-	process_neotoma_age($request, $r, $ageunit);
-    }
+    # foreach my $r (@records)
+    # {
+    # 	process_neotoma_age($request, $r, $ageunit);
+    # }
+    
+    $subquery->process_records('process_neotoma_age', $ageunit);
     
     if ( $request->{my_timerule} eq 'major' || $request->{my_timerule} eq 'buffer' )
     {
-	@records = grep { $request->time_filter($_) } @records;
+	# @records = grep { $request->time_filter($_) } @records;
 	
-	if ( scalar(@records) < $count )
+	my $reduced_count = $subquery->filter_records( sub { $request->time_filter(@_) } );
+	
+	if ( $reduced_count < $count )
 	{
-	    my $diff = $count - scalar(@records);
+	    my $diff = $count - $reduced_count;
 	    $subquery->{removed} += $diff;
 	}
     }
-    
-    return @records;
 }
 
 
@@ -451,21 +497,61 @@ sub generate_parser {
 }
 
 
-# sub process_occs_list_old {
+# process_json ( body, headers )
+# 
+# This method does the primary decoding a of JSON-format response.  We need a
+# separate method in each subservice interface class, because each subservice
+# returns a particular data structure with particular keys to indicate data
+# records and error or warning messages.
+
+sub process_json {
     
-#     my ($subquery, $chunk) = @_;
+    my ($subquery, $body, $headers) = @_;
     
-#     next unless defined $chunk && $chunk ne '';
+    # There is nothing to do unless we actually have a chunk of the response
+    # body to work with.
     
-#     my $parser = $subquery->{parser};
-#     my $request = $subquery->{request};
+    return unless defined $body && $body ne '';
     
-#     my @records = map { $_->{Value} } $parser->feed($chunk);
-#     my $count = scalar(@records);
+    # Grab the parser object, which was generated for this subrequest by the
+    # 'generate_parser' method above.  This is a streaming parser, so we can
+    # pass it the response body one chunk at a time.
     
-#     $request->ds->debug_line("Got NEOTOMA response chunk: $count records");
+    my $parser = $subquery->{parser};
     
-#     return @records;
-# }
+    # Feed the response chunk we were given to the parser and extract a list
+    # of response parts that we are interested in.  If an error occurs, then add
+    # a warning message.
+    
+    my @extracted;
+    
+    try {
+        @extracted = $parser->feed($body);
+    }
+    catch {
+        $subquery->add_warning("could not decode JSON response");
+    };
+    
+    # Go through the list.  Everything under 'records:' is a data record.
+    # Anything under 'warnings:' or 'errors:' we treat as a warning message.
+    
+    foreach my $r (@extracted)
+    {
+	if ( $r->{Path} =~ /data/ )
+	{
+	    $subquery->add_record($r->{Value});
+	}
+	
+	elsif ( $r->{Path} =~ /success/ )
+	{
+	   $subquery->add_warning("Request failed") unless $r->{Value};
+	}
+	
+	elsif ( $r->{Path} =~ /message/ )
+	{
+	    $subquery->add_warning($r->{Value});
+	}
+    }
+}
 
 1;

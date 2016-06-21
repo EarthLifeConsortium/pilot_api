@@ -16,6 +16,7 @@ use Carp qw(carp croak);
 
 our (@REQUIRES_ROLE) = qw(CommonData);
 
+use CompositeQuery;
 use ExternalIdent qw(VALID_IDENTIFIER generate_identifier);
 
 use Moo::Role;
@@ -167,6 +168,12 @@ sub initialize {
 	{ param => 'match_name', valid => ANY_VALUE },
 	    "Select occurrences identified to a taxonomic name matching the",
 	    "specified pattern, which may include C<%> and C<_> as wildcards.",
+	{ param => 'base_id', valid => VALID_IDENTIFIER('TXN') },
+	    "Select occurrences identified to the taxonomic name specified by the",
+	    "given identifier, including all subtax.a",
+	{ param => 'taxon_id', valid => VALID_IDENTIFIER('TXN') },
+	    "Select occurrences identified to the taxonomic name specified by the",
+	    "given identifier.",
 	{ at_most_one => ['taxon_name', 'base_name', 'match_name'] },
 	{ param => 'site_id', valid => VALID_IDENTIFIER('CST'), list => ',' },
 	    "Select occurrences from the given site, specified by site identifier.",
@@ -300,7 +307,8 @@ sub occs_list {
     # between the coroutines that will make the necessary queries and process
     # the results.
     
-    my $composite_query = CompositeQuery->new($request, $CompositeService::TIMEOUT);
+    my $composite_query = CompositeQuery->new($request, { timeout => $CompositeService::TIMEOUT,
+							  retries => 1 });
     
     # We now loop over the list of available subservices.  For each one, we
     # set up a coroutine which will be responsible for sending off the query
@@ -318,13 +326,36 @@ sub occs_list {
     # Run this composite query, and wait for results to come back.
     
     $composite_query->run;
+
+    # If any warnings were received, add them to the response.
+
+    if ( my @warnings = $composite_query->warnings )
+    {
+	$request->add_warning(@warnings);
+    }
     
     # If we were asked to, collect up all of the URLs that were used to query
     # the subservices so that we can document how this request was satisfied.
     
     if ( $request->has_block('subq') )
     {
-	$composite_query->summarize_urls;
+	my @summary_list = $composite_query->urls(1);
+	my (@summary_fields, %summary_values);
+	
+	while ( my $s = shift @summary_list )
+	{
+	    next unless ref $s eq 'ARRAY';
+	    
+	    my ($label, $status, $url) = @$s;
+	    
+	    push @summary_fields, { field => $label, name => "$label URL" };
+	    $summary_values{$label} = $url;
+	    push @summary_fields, { field => "st$label", name => "$label Status" };
+	    $summary_values{"st$label"} = $status;
+	}
+	
+	$request->{summary_field_list} = \@summary_fields;
+	$request->summary_data(\%summary_values);
     }
     
     # Then collect up the results received from the various subservices and do
@@ -647,13 +678,14 @@ sub time_filter {
     
     if ( $timerule eq 'major' )
     {
-	my $recordspan = $record->{age_older} - $record->{age_younger};
+	my $recordspan = defined $record->{age_older} && defined $record->{age_younger} ?
+	    $record->{age_older} - $record->{age_younger} : 0;
 	my $overlap;
     
 	if ( $recordspan == 0 )
 	{
-	    return if $request->{my_max_age} && $record->{age_older} > $request->{my_max_age};
-	    return if $request->{my_min_age} && $record->{age_younger} < $request->{my_min_age};
+	    return if $request->{my_max_age} && defined $record->{age_older} && $record->{age_older} > $request->{my_max_age};
+	    return if $request->{my_min_age} && defined $record->{age_younger} && $record->{age_younger} < $request->{my_min_age};
 	    return 1;
 	}
     

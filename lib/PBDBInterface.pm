@@ -6,11 +6,11 @@ package PBDBInterface;
 
 use JSON::SL;
 use Try::Tiny;
+use URLParam;
 
+use parent 'CompositeSubquery';
 
-use parent 'BaseInterface';
-
-our ($SERVICE_LABEL) = 'pbdb';
+our ($SERVICE_LABEL) = 'PaleoBioDB';
 
 
 sub init_occs_list {
@@ -19,21 +19,60 @@ sub init_occs_list {
     
     my @params;
     
+    # First check to make sure we were asked to return PBDB results.  If not,
+    # then we have nothing to do.
+    
+    if ( ref $request->{ds_hash} eq 'HASH' )
+    {
+	return unless $request->{ds_hash}{pbdb};
+    }
+    
     # First check for a taxon name parameter
     
     if ( my $name = $request->clean_param('base_name') )
     {
-	push @params, "base_name=$name";
+	push @params, url_param("base_name", $name);
     }
     
     elsif ( $name = $request->clean_param('taxon_name') )
     {
-	push @params, "taxon_name=$name";
+	push @params, url_param("taxon_name", $name);
     }
     
     elsif ( $name = $request->clean_param('match_name') )
     {
-	push @params, "match_name=$name";
+	push @params, url_param("match_name", $name);
+    }
+    
+    elsif ( my $id = $request->clean_param('base_id') || $request->clean_param('taxon_id') )
+    {
+	my $param = 'base_id';
+	$param = 'taxon_id' if $request->param_given('taxon_id');
+	
+	if ( ref $id eq 'Composite::ExtIdent' )
+	{
+	    unless ( $id->{domain} )
+	    {
+		$request->add_warning("The value of '$param' cannot be interpreted because it is ambiguous as to which database it belongs to");
+		return;
+	    }
+	    
+	    elsif ( $id->{domain} eq 'pbdb' )
+	    {
+		push @params, url_param("base_id", $id);
+	    }
+	    
+	    elsif ( $id->{domain} eq 'neotoma' )
+	    {
+		$request->add_warning("The PaleoBioDB cannot be queried for taxa identified by Neotoma identifiers");
+		return;
+	    }
+	}
+	
+	else
+	{
+	    push @params, url_param("base_id", $id);
+	}
     }
     
     # Check for bbox parameter if any
@@ -42,17 +81,10 @@ sub init_occs_list {
     {
 	my ($x1,$y1,$x2,$y2) = split(/,/, $bbox);
 	
-	push @params, "lngmin=$x1";
-	push @params, "lngmax=$x2";
-	push @params, "latmin=$y1";
-	push @params, "latmax=$y2";
-    }
-    
-    # Then check for the occ_id && ds parameters
-    
-    if ( ref $request->{ds_hash} eq 'HASH' )
-    {
-	return unless $request->{ds_hash}{pbdb};
+	push @params, url_param("lngmin", $x1);
+	push @params, url_param("lngmin", $x2);
+	push @params, url_param("lngmin", $y1);
+	push @params, url_param("lngmin", $y2);
     }
     
     if ( my @occ_ids = $request->clean_param_list('occ_id') )
@@ -96,7 +128,7 @@ sub init_occs_list {
 	if ( @pbdb_ids )
 	{
 	    my $id_list = join(',', @pbdb_ids);
-	    push @params, "occ_id=$id_list";
+	    push @params, url_param("occ_id", $id_list);
 	}
 	
 	# Otherwise return false, since there will be no matching records from
@@ -151,7 +183,7 @@ sub init_occs_list {
 	if ( @pbdb_ids )
 	{
 	    my $id_list = join(',', @pbdb_ids);
-	    push @params, "coll_id=$id_list";
+	    push @params, url_param("coll_id", $id_list);
 	}
 	
 	# Otherwise return false, since there will be no matching records from
@@ -220,19 +252,27 @@ sub init_occs_list {
 	    $oldbuffer = 0.2 * $range;
 	}
 	
-	push @params, "timebuffer=$oldbuffer";
+	push @params, url_param("timebuffer", $oldbuffer);
 	
 	if ( defined $youngbuffer && $youngbuffer ne '' && $youngbuffer ne $oldbuffer )
 	{
 	    $youngbuffer /= 1000000;
-	    push @params, "latebuffer=$youngbuffer";
+	    push @params, url_param("latebuffer", $youngbuffer);
 	}
     }
     
     # Then add other necessary parameters:
     
     push @params, "vocab=pbdb";
-    push @params, "show=loc,coords" if $request->has_block('loc');
+
+    if ( $request->has_block('loc') )
+    {
+	push @params, "show=loc,coords,coll";
+    }
+    else
+    {
+	push @params, "show=coll";
+    }
     
     # Create the necessary objects to execute a query on the PaleoBioDB and
     # parse the results.
@@ -251,7 +291,7 @@ sub init_occs_list {
 
 sub init_occs_single {
 
-    my ($subservice, $request) = @_;
+    my ($subquery, $request) = @_;
     
     my @params;
     
@@ -303,7 +343,7 @@ sub init_occs_single {
     if ( @pbdb_ids )
     {
 	my $id_list = join(',', @pbdb_ids);
-	push @params, "occ_id=$id_list";
+	push @params, url_param("occ_id", $id_list);
     }
     
     # Otherwise return false, since there will be no matching records from
@@ -317,7 +357,15 @@ sub init_occs_single {
     # Then add other necessary parameters:
     
     push @params, "vocab=pbdb";
-    push @params, "show=loc,coords" if $request->has_block('loc');
+
+    if ( $request->has_block('loc') )
+    {
+	push @params, "show=loc,coords,coll";
+    }
+    else
+    {
+	push @params, "show=coll";
+    }
     
     # Create the necessary objects to execute a query on the PaleoBioDB and
     # parse the results.
@@ -337,58 +385,114 @@ sub init_occs_single {
 
 sub process_occs_list {
     
-    my ($subquery, $request, $body, $headers) = @_;
+    my $subquery = shift;
     
-    my @extracted = $subquery->process_json($body);
-    my (@records, @warnings);
+    $subquery->process_json(@_);
     
-    foreach my $r (@extracted)
-    {
-	if ( $r->{Path} =~ /records/ )
-	{
-	    push @records, $r->{Value};
-	}
-	
-	elsif ( $r->{Path} =~ /status/ )
-	{
-	    # $subquery->{status} = $r->{Value};
-	}
-	
-	elsif ( $r->{Path} =~ /warnings|errors/ && ref $r->{Value} eq 'ARRAY' )
-	{
-	    push @warnings, map { "PaleoBioDB: $_" } @{$r->{Value}};
-	}
-    }
+    my $count = scalar($subquery->records);
+    my $request = $subquery->request;
     
-    my $count = scalar(@records);
-    my $wcount = scalar(@warnings);
+    # my $message = "Got PBDB response chunk: $count records";
+    # $message .= " $wcount warnings" if $wcount;
+    # $message .= " STATUS $subquery->{status}" if $subquery->{http_status} && $subquery->{status} ne '200';
     
-    my $message = "Got PBDB response chunk: $count records";
-    $message .= " $wcount warnings" if $wcount;
-    $message .= " STATUS $request->{status}" if $request->{status} && $request->{status} ne '200';
+    # $subquery->ds->debug_line($message);
     
-    # $request->ds->debug_line($message);
+    # if ( my @warnings = $subquery->warnings )
+    # {
+    # 	$request->add_warning(@warnings);
+    # }
     
-    $request->add_warning(@warnings) if @warnings;
+    $request->{pbdb_count} += $count;
     
-    $request->{pbdb_count} += scalar(@records);
+    # Process the results
     
-    # Process the results and return them
-
     my $ageunit = $request->clean_param('ageunit');
     
-    foreach my $r (@records)
-    {
-	process_pbdb_age($request, $r, $ageunit);
-    }
+    $subquery->process_records('process_pbdb_age', $ageunit);
     
-    return @records;
+    # foreach my $r (@records)
+    # {
+
+    # 	process_pbdb_age($request, $r, $ageunit);
+    # }
+    
+    # return @records;
+    
+    my $a = 1;	# we can stop here when debugging
+}
+
+
+# sub process_occs_list {
+    
+#     my ($subquery, $request, $body, $headers) = @_;
+    
+#     my @extracted = $subquery->process_json($body);
+#     my (@records, @warnings);
+    
+#     foreach my $r (@extracted)
+#     {
+# 	if ( $r->{Path} =~ /records/ )
+# 	{
+# 	    push @records, $r->{Value};
+# 	}
+	
+# 	elsif ( $r->{Path} =~ /status/ )
+# 	{
+# 	    # $subquery->{status} = $r->{Value};
+# 	}
+	
+# 	elsif ( $r->{Path} =~ /warnings|errors/ && ref $r->{Value} eq 'ARRAY' )
+# 	{
+# 	    push @warnings, map { "PaleoBioDB: $_" } @{$r->{Value}};
+# 	}
+#     }
+    
+#     my $count = scalar(@records);
+#     my $wcount = scalar(@warnings);
+    
+#     my $message = "Got PBDB response chunk: $count records";
+#     $message .= " $wcount warnings" if $wcount;
+#     $message .= " STATUS $request->{status}" if $request->{status} && $request->{status} ne '200';
+    
+#     # $request->ds->debug_line($message);
+    
+#     $request->add_warning(@warnings) if @warnings;
+    
+#     $request->{pbdb_count} += scalar(@records);
+    
+#     # Process the results and return them
+
+#     my $ageunit = $request->clean_param('ageunit');
+    
+#     foreach my $r (@records)
+#     {
+# 	process_pbdb_age($request, $r, $ageunit);
+#     }
+    
+#     return @records;
+# }
+
+
+sub init_fetch_taxon {
+    
+    my ($subquery, $request) = @_;
+    
+    my $args = $subquery->{args};
+    
+    die "No arguments were specified for init_fetch_taxon\n"
+	unless ref $args eq 'HASH';
+    
+    my $taxon_no = $args->{taxon_no};
+    
+    die "You must specify ???";
+    
 }
 
 
 sub process_pbdb_age {
 
-    my ($request, $record, $ageunit) = @_;
+    my ($subquery, $record, $ageunit) = @_;
     
     if ( defined $record->{max_ma} || defined $record->{min_ma} )
     {
@@ -424,5 +528,65 @@ sub generate_parser {
     return $json_parser;
 }
 
+
+# process_json ( body, headers )
+# 
+# This method does the primary decoding a of JSON-format response.  We need a
+# separate method in each subservice interface class, because each subservice
+# returns a particular data structure with particular keys to indicate data
+# records and error or warning messages.
+
+sub process_json {
+    
+    my ($subquery, $body, $headers) = @_;
+    
+    # There is nothing to do unless we actually have a chunk of the response
+    # body to work with.
+    
+    return unless defined $body && $body ne '';
+    
+    # Grab the parser object, which was generated for this subrequest by the
+    # 'generate_parser' method above.  This is a streaming parser, so we can
+    # pass it the response body one chunk at a time.
+    
+    my $parser = $subquery->{parser};
+    
+    # Feed the response chunk we were given to the parser and extract a list
+    # of response parts that we are interested in.  If an error occurs, then add
+    # a warning message.
+    
+    my @extracted;
+    
+    try {
+        @extracted = $parser->feed($body);
+    }
+    catch {
+        $subquery->add_warning("could not decode JSON response");
+    };
+    
+    # Go through the list.  Everything under 'records:' is a data record.
+    # Anything under 'warnings:' or 'errors:' we treat as a warning message.
+    
+    foreach my $r (@extracted)
+    {
+	if ( $r->{Path} =~ /records/ )
+	{
+	    $subquery->add_record($r->{Value});
+	}
+	
+	elsif ( $r->{Path} =~ /status/ )
+	{
+	    # $subquery->{status} = $r->{Value};
+	}
+	
+	elsif ( $r->{Path} =~ /warnings|errors/ && ref $r->{Value} eq 'ARRAY' )
+	{
+	    foreach my $w (@{$r->{Value}})
+	    {
+		$subquery->add_warning($w);
+	    }
+	}
+    }
+}
 
 1;
