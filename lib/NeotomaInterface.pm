@@ -256,6 +256,10 @@ sub init_occs_list {
     {
 	push @params, "agedocontain=0";
     }
+
+    # We need to add a clause to circumvent the default 500-record limit
+
+    push @params, "limit=999999";
     
     # Create the necessary objects to execute a query on the Neotoma database
     # and parse the results.
