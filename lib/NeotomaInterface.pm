@@ -32,22 +32,22 @@ sub init_occs_list {
     
     if ( my $name = $request->clean_param('base_name') )
     {
-	push @params, "taxonname=$name";
+	push @params, url_param("taxonname", $name);
 	push @params, "nametype=base";
     }
     
     elsif ( $name = $request->clean_param('taxon_name') )
     {
-	push @params, "taxonname=$name";
+	push @params, url_param("taxonname", $name);
 	push @params, "nametype=tax";
     }
     
     elsif ( $name = $request->clean_param('match_name') )
     {
-	push @params, "taxonname=$name";
+	push @params, url_param("taxonname", $name);
 	push @params, "nametype=match";
     }
-    
+   
     elsif ( my $id = $request->clean_param('base_id') || $request->clean_param('taxon_id') )
     {
 	my $nametype = 'base';
