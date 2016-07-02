@@ -7,6 +7,7 @@ package NeotomaInterface;
 use JSON::SL;
 use Try::Tiny;
 use URLParam;
+use Encode qw(decode_utf8);
 
 use parent 'CompositeSubquery';
 
@@ -387,14 +388,14 @@ sub process_occs_list {
     
     # my @records = $subquery->records;
     
-    my $ageunit = $request->clean_param('ageunit');
+    # my $ageunit = $request->clean_param('ageunit');
     
     # foreach my $r (@records)
     # {
     # 	process_neotoma_age($request, $r, $ageunit);
     # }
     
-    $subquery->process_records('process_neotoma_age', $ageunit);
+    # $subquery->process_records('process_neotoma_age', $ageunit);
     
     if ( $request->{my_timerule} eq 'major' || $request->{my_timerule} eq 'buffer' )
     {
@@ -530,7 +531,7 @@ sub process_json {
     my @extracted;
     
     try {
-        @extracted = $parser->feed($body);
+        @extracted = $parser->feed(decode_utf8($body));
     }
     catch {
         $subquery->add_warning("could not decode JSON response");

@@ -73,6 +73,7 @@ sub initialize {
 	    "The minimum of the age range to which this occurrence has been dated.",
 	{ output => 'AgeUnit',
 	  com_name => 'agu', neotoma_name => 'AgeUnit', pbdb_name => 'age_unit' },
+        { set => '*', code => \&process_age },
 	{ set => 'SiteName', from => 'collection_name', if_field => 'collection_name' },
 	# { output => 'SiteName',
 	#   com_name => 'cna', neotoma_name => 'SiteName', pbdb_name => 'collection_name' },
@@ -875,7 +876,7 @@ sub process_one_record {
     
     if ( $request->{output_vocab} eq 'pbdb' )
     {
-    	$record->{record_type} = 'occurrence';
+    	$record->{record_type} = 'occ';
     }
     elsif ( $request->{output_vocab} eq 'neotoma' || $request->{output_vocab} eq 'dwc' )
     {
@@ -885,7 +886,6 @@ sub process_one_record {
     {
     	$record->{record_type} = 'occ';
     }
-    
 }
 
 

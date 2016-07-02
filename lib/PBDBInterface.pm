@@ -7,6 +7,7 @@ package PBDBInterface;
 use JSON::SL;
 use Try::Tiny;
 use URLParam;
+use Encode qw(decode_utf8);
 
 use parent 'CompositeSubquery';
 
@@ -409,7 +410,7 @@ sub process_occs_list {
     
     my $ageunit = $request->clean_param('ageunit');
     
-    $subquery->process_records('process_pbdb_age', $ageunit);
+    # $subquery->process_records('process_pbdb_age', $ageunit);
     
     # foreach my $r (@records)
     # {
@@ -558,7 +559,7 @@ sub process_json {
     my @extracted;
     
     try {
-        @extracted = $parser->feed($body);
+        @extracted = $parser->feed(decode_utf8($body));
     }
     catch {
         $subquery->add_warning("could not decode JSON response");
