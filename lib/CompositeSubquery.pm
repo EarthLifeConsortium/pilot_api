@@ -281,11 +281,11 @@ sub _comp_phase {
 	# If we have tried enough times already, then give up.
 	
 	$subquery->{retries}++;
-	$cq->{retries} //= 3;
 	
-	if ( $subquery->{retries} >= $cq->{retries} )
+	if ( $subquery->{retries} > $cq->{retries} )
 	{
-	    $subquery->add_warning("Error $subquery->{http_status} after retrying subrequest 3 times");
+	    my $tries = $cq->{retries} || 1;
+	    $subquery->add_warning("Error $subquery->{http_status} after trying subrequest $tries times");
 	    $subquery->add_warning("Bad request '$subquery->{url}'");
 	    $cq->done_subquery($subquery);
 	    return;
@@ -304,7 +304,9 @@ sub _comp_phase {
 	$subquery->{cv_init}->cb($subquery->_generate_callback('_init_phase'));
 	$subquery->debug("RETRY $subquery->{retries}");
 	
-	$subquery->{cv_init}->send;
+	# $subquery->{cv_init}->send;
+	push @{$cq->{retry_queue}}, $subquery;
+	weaken $cq->{retry_queue}[-1];
     }
     
     # Otherwise, we handle the response.  We do this even if the HTTP status indicates an error,

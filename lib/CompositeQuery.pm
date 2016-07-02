@@ -15,7 +15,7 @@ use Scalar::Util qw(weaken reftype blessed);
 use Carp qw(carp croak);
 
 my %OPT = ( 'timeout' => 1,
-	    'retries' => 1,
+	    'retries' => 3,
 	  );
 
 use namespace::clean;
@@ -52,9 +52,10 @@ sub new {
     my $self = { request => $request,
 		 start => AE::time,
 		 timeout => 0,
-		 retries => 3,
+		 retries => 0,
 		 queries => [ ],
 		 warnings => [ ],
+		 retry_queue => [ ],
 	       };
     
     bless $self, $class;
@@ -95,7 +96,7 @@ sub new {
     
     if ( $self->{timeout} )
     {
-	$self->{tm_fallback} = AE::timer 5, 5, $self->generate_timer_callback($self->{timeout});
+	$self->{tm_fallback} = AE::timer 3, 3, $self->generate_timer_callback($self->{timeout});
     }
     
     return $self;
@@ -104,9 +105,15 @@ sub new {
 
 # generate_timer_callback ( timeout )
 # 
-# Generate a callback which will check whether the specified timeout has
-# elapsed.  If it has, then we signal the cv_finished condition variable which
-# causes the entire composite query to be immediately terminated.
+# Generate a callback which will fire periodically so that we can check on the
+# progress of the query.  This timeout routine needs to do two things:
+#
+# 1) check whether the overall timeout has elapsed.  If it has, then we signal
+#    the cv_finished condition variable which causes the entire composite
+#    query to be immediately terminated.
+#
+# 2) check whether any subqueries need to be retried.  If so, then fire off
+#    another attempt.
 
 sub generate_timer_callback {
     
@@ -122,13 +129,24 @@ sub generate_timer_callback {
     # Return a callback subroutine that will have the desired effect. The
     # reference to $self persists as a closure on this subroutine.
     
-    return sub { 
+    return sub {
+	
 	return unless defined $self;
+	
 	my $elapsed = AE::time - $self->{start};
-	# print STDERR "TICK $elapsed\n"; 
+	$self->debug("TICK $elapsed");
+	
 	if ( $elapsed > $timeout )
 	{
 	    $self->{cv_finished}->send('TIMEOUT');
+	}
+	
+	else
+	{
+	    while ( my $subquery = shift @{$self->{retry_queue}} )
+	    {
+		$subquery->{cv_init}->send if ref $subquery && ref $subquery->{cv_init};
+	    }
 	}
     };
 }

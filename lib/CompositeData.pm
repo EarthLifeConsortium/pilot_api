@@ -306,9 +306,11 @@ sub occs_list {
     # Create a new composite query object, which will handle the coordination
     # between the coroutines that will make the necessary queries and process
     # the results.
+
+    my $retry_count = $request->ds->config_value('retry_subqueries') || 1;
     
     my $composite_query = CompositeQuery->new($request, { timeout => $CompositeService::TIMEOUT,
-							  retries => 1 });
+							  retries => $retry_count });
     
     # We now loop over the list of available subservices.  For each one, we
     # set up a coroutine which will be responsible for sending off the query
