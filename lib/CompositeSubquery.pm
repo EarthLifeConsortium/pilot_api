@@ -147,7 +147,7 @@ sub _init_phase {
     my $init_method = $subquery->{init_method};
     my $request = $subquery->request;
     
-    my ($url) = $subquery->$init_method($request);
+    $subquery->$init_method($request);
     
     # If no URL was generated, then we abort the query.  This is not necessarily due to an error
     # condition, because this particular subquery may simply not be needed in order to satisfy the
@@ -155,7 +155,7 @@ sub _init_phase {
     # initialization method to add a warning message to the request object and/or throw an
     # exception which will abort the whole compound query.
     
-    unless ( $url )
+    unless ( $subquery->{url} && $subquery->{url} ne '' )
     {
 	$subquery->debug("ABORT, NO URL");
 	$subquery->{status} = 'ABORT';
@@ -165,16 +165,14 @@ sub _init_phase {
     # Otherwise, we get ready to send off the subrequest.  First, we see if the subquery has a
     # method for generating a parser object.  If so, call it and store the result.
     
-    if ( $subquery->can('generate_parser') )
-    {
-	$subquery->{parser} = $subquery->generate_parser($request, $url);
-    }
+    # if ( $subquery->can('generate_parser') )
+    # {
+    # 	$subquery->{parser} = $subquery->generate_parser($request, $url);
+    # }
     
-    # Store the URL and set the status of the subquery to 'GET' indicating that a request is about
-    # to be sent off.
+    # Set the status of the subquery to 'GET' indicating that a request is about to be sent off.
     
-    $subquery->debug("URL = $url");
-    $subquery->{url} = $url;
+    $subquery->debug("URL = $subquery->{url}");
     $subquery->{status} = 'GET';
     
     # Generate an HTTP request on the specified URL.  The routine that does this takes the
@@ -196,7 +194,7 @@ sub _init_phase {
     # if it is ever destroyed or goes out of scope, then all data structures and callbacks
     # associated with the request will be destroyed as well.
     
-    $subquery->{guard} = http_request(GET => $url, @args);
+    $subquery->{guard} = http_request(GET => $subquery->{url}, @args);
     
     # When we get here, the subrequest has been launched.  We now return control to the event
     # loop, which can hand it off to other coroutines which may need to execute in order for the
@@ -341,6 +339,45 @@ sub request {
     my ($subquery) = @_;
     
     return $subquery->{cq}{request};
+}
+
+
+# set_url ( url )
+#
+# Set the URL for this subquery.  This method is designed to be called by the
+# query initialization methods defined by the various interface classes.
+
+sub set_url {
+
+    my ($subquery, $url) = @_;
+
+    $subquery->{url} = $url;
+}
+
+
+sub url {
+
+    return $_[0]->{url};
+}
+
+
+# set_parser ( parser )
+#
+# Store a reference to a parser object that will be used to parse the response
+# body as it is received.  This method is designed to be called by the query
+# initialization methods defined by the various interface classes.
+
+sub set_parser {
+
+    my ($subquery, $parser) = @_;
+
+    $subquery->{parser} = $parser;
+}
+
+
+sub parser {
+
+    return $_[0]->{parser};
 }
 
 
