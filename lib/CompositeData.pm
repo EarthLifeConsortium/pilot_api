@@ -323,7 +323,7 @@ sub occs_list {
 	
 	$subservice->new_subquery($composite_query,
 				  init_method => 'init_occs_list', 
-				  proc_method => 'process_occs_list');
+				  proc_method => 'process_occs_response');
     }
     
     # Run this composite query, and wait for results to come back.
@@ -427,7 +427,7 @@ sub occs_single {
 	
 	$subservice->new_subquery($composite_query,
 				  init_method => 'init_occs_single', 
-				  proc_method => 'process_occs_list');
+				  proc_method => 'process_occs_response');
     }
     
     # Run this composite query, and wait for results to come back.
@@ -520,62 +520,88 @@ sub time_params {
     my ($request) = @_;
     
     # First check the max and min parameters.
+
+    my ($max_age_unit, $min_age_unit);
     
-    my $max_age = $request->clean_param('max_ma');
-    my $max_age_unit = 'ma';
+    my $max_ma = $request->clean_param('max_ma');
+    my $max_ybp = $request->clean_param('max_age');
     
-    unless ( $max_age )
+    if ( defined $max_ma && $max_ma ne '' )
     {
-	$max_age = $request->clean_param('max_age');
+	die $request->exception("400",
+		"Invalid value '$max_ma' for 'max_ma', must be a decimal number greater than zero")
+	    unless $max_ma =~ $VALID_AGE && $max_ma > 0;
+	
+	$request->{my_max_ma} = $max_ma;
+	$request->{my_max_ybp} = $max_ma * 1E6;
+	$max_age_unit = 'ma';
+    }
+    
+    elsif ( defined $max_ybp && $max_ybp ne '' )
+    {
+	die $request->exception("400",
+		"Invalid value '$max_ybp' for 'max_ybp', must be a decimal number greater than zero")
+	    unless $max_ybp =~ $VALID_AGE && $max_ybp > 0;
+	
+	$request->{my_max_ma} = $max_ybp / 1E6;
+	$request->{my_max_ybp} = $max_ybp;
 	$max_age_unit = 'ybp';
     }
     
-    if ( defined $max_age && $max_age ne '' )
+    my $min_ma = $request->clean_param('min_ma' );
+    my $min_ybp = $request->clean_param('min_age' );
+    
+    if ( defined $min_ma && $min_ma ne '' )
     {
-	die "400 Invalid age '$max_age', must be a decimal number greater than zero\n"
-	    unless $max_age =~ $VALID_AGE && $max_age > 0;
+	die $request->exception("400", "Invalid value '$min_ma' for 'min_ma', must be a decimal number")
+	    unless $min_ma =~ $VALID_AGE;
 	
-	$request->{my_max_age} = $max_age;
-	$request->{my_max_unit} = $max_age_unit;
+	$request->{my_min_ma} = $min_ma;
+	$request->{my_min_ybp} = $min_ma * 1E6;
+	$min_age_unit = 'ma';
     }
-    
-    my $min_age = $request->clean_param('min_ma' );
-    my $min_age_unit = 'ma';
-    
-    unless ( $min_age )
+
+    elsif ( defined $min_ybp && $min_ybp ne '' )
     {
-	$min_age = $request->clean_param('min_age');
+	die $request->exception("400", "Invalid value '$min_ybp' for 'min_ybp', must be a decimal number")
+	    unless $min_ybp =~ $VALID_AGE;
+	
+	$request->{my_min_ma} = $min_ybp / 1E6;
+	$request->{my_min_ybp} = $min_ybp;
 	$min_age_unit = 'ybp';
-    }
-    
-    if ( $min_age )
-    {
-	die "400 Invalid age '$min_age', must be a decimal number\n"
-	    unless $min_age =~ $VALID_AGE;
-	
-	$request->{my_min_age} = $min_age;
-	$request->{my_min_unit} = $min_age_unit;
     }
     
     # Now compute the age range, if defined.
     
     my ($max_years, $min_years, $range);
-    
-    if ( $min_age )
+
+    if ( $request->{my_max_ma} )
     {
-	$min_years = $min_age_unit eq 'ma' ? $min_age * 1000000 : $min_age;
+	$request->{my_range_ma} = $request->{my_max_ma};
+	$request->{my_range_ma} -= $request->{my_min_ma} if $request->{my_min_ma};
+    }
+
+    if ( $request->{my_max_ybp} )
+    {
+	$request->{my_range_ybp} = $request->{my_max_ybp};
+	$request->{my_range_ybp} -= $request->{my_min_ybp} if $request->{my_min_ybp};
     }
     
-    if ( $max_age )
-    {
-	$max_years = $max_age_unit eq 'ma' ? $max_age * 1000000 : $max_age;
-	$range = $min_years ? $max_years - $min_years : $max_years;
-    }
+    # if ( $min_age )
+    # {
+    # 	$min_years = $min_age_unit eq 'ma' ? $min_age * 1000000 : $min_age;
+    # }
     
-    $request->{my_age_range} = $range if $range;
+    # if ( $max_age )
+    # {
+    # 	$max_years = $max_age_unit eq 'ma' ? $max_age * 1000000 : $max_age;
+    # 	$range = $min_years ? $max_years - $min_years : $max_years;
+    # }
+    
+    # $request->{my_age_range} = $range if $range;
     
     # Then deal with the timerule parameter
-
+    
     my $timerule = $request->clean_param('timerule');
     
     # Then deal with the timebuffer parameter
@@ -598,41 +624,46 @@ sub time_params {
 		$young = $old;
 		$young_pct = $old_pct;
 	    }
-	    
-	    
-	    if ( $range )
+
+	    if ( $request->{my_range_ma} )
 	    {
 		if ( $old_pct )
 		{
-		    $oldbuffer =  $old * $range / 100;
+		    $request->{my_oldbuffer_ma} = $old / 100 * $request->{my_range_ma};
+		    $request->{my_oldbuffer_ybp} = $old / 100 * $request->{my_range_ybp};
 		}
 		
 		else
 		{
-		    $oldbuffer = $max_age_unit eq 'ma' ? $old * 1000000 : $old;
+		    $request->{my_oldbuffer_ma} = $max_age_unit eq 'ma' ? $old : $old * 1E6;
+		    $request->{my_oldbuffer_ybp} = $max_age_unit eq 'ybp' ? $old : $old / 1E6;
 		}
 		
 		if ( $young_pct )
 		{
-		    $youngbuffer = $young * $range / 100;
+		    $request->{my_youngbuffer_ma} = $young / 100 * $request->{my_range_ma};
+		    $request->{my_youngbuffer_ybp} = $young / 100 * $request->{my_range_ybp};
 		}
 		
 		else
 		{
-		    $youngbuffer = $min_age_unit eq 'ma' ? $young * 1000000 : $young;
+		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young * 1E6;
+		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young / 1E6;
 		}
 	    }
 	    
-	    elsif ( $min_years )
+	    elsif ( $request->{my_min_ma} )
 	    {
 		if ( $young_pct )
 		{
-		    $youngbuffer = $young * $min_years / 100;
+		    $request->{my_youngbuffer_ma} = $young / 100 * $request->{my_min_ma};
+		    $request->{my_youngbuffer_ybp} = $young / 100 * $request->{my_min_ybp};
 		}
 		
 		else
 		{
-		    $youngbuffer = $min_age_unit eq 'ma' ? $young * 1000000 : $young;
+		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young * 1E6;
+		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young / 1E6;
 		}
 	    }
 	}
@@ -648,136 +679,9 @@ sub time_params {
 	}
 	
 	$timerule = 'buffer';
-	$request->{my_old_buffer} = $oldbuffer;
-	$request->{my_young_buffer} = $youngbuffer;
     }
     
     $request->{my_timerule} = $timerule || 'major';
-}
-
-
-# time_filter ( )
-# 
-# Check to make sure that each record satisfies the specified timerule.  This
-# check only needs to be done on Neotoma records, and only if the timerule is
-# 'major' (the default).
-
-sub time_filter {
-    
-    my ($request, $record) = @_;
-    
-    # The check only applies if the timerule is 'major'.
-    
-    my $timerule = $request->{my_timerule};
-    
-    return 1 unless defined $timerule;
-    
-    # The check also applies only at least one non-zero age bound was specified.
-    
-    return 1 unless $request->{my_max_age} || $request->{my_min_age};
-    
-    # If the timerule was 'major', only accept the record if more than 50% of its
-    # age range overlaps the specified filter age range.
-    
-    if ( $timerule eq 'major' )
-    {
-	my $recordspan = defined $record->{age_older} && defined $record->{age_younger} ?
-	    $record->{age_older} - $record->{age_younger} : 0;
-	my $overlap;
-    
-	if ( $recordspan == 0 )
-	{
-	    return if $request->{my_max_age} && defined $record->{age_older} && $record->{age_older} > $request->{my_max_age};
-	    return if $request->{my_min_age} && defined $record->{age_younger} && $record->{age_younger} < $request->{my_min_age};
-	    return 1;
-	}
-    
-	elsif ( $request->{my_max_age} )
-	{
-	    return unless $record->{age_older};
-	
-	    $record->{age_younger} ||= 0;
-	    $record->{my_min_age} ||= 0;
-	
-	    if ( $record->{age_older} > $request->{my_max_age} )
-	    {
-		if ( $record->{age_younger} < $request->{my_min_age} )
-		{
-		    $overlap = $request->{my_max_age} - $request->{my_min_age};
-		}
-	    
-		else
-		{
-		    $overlap = $request->{my_max_age} - $record->{age_younger};
-		}
-	    }
-	
-	    elsif ( $record->{age_younger} < $request->{my_min_age} )
-	    {
-		$overlap = $record->{age_older} - $request->{my_min_age};
-	    }
-	
-	    else
-	    {
-		$overlap = $record->{age_older} - $record->{age_younger};
-	    }
-	}
-    
-	elsif ( $record->{age_older} > $request->{my_min_age} )
-	{
-	    $overlap = $record->{age_older} - $request->{my_min_age};
-	}
-    
-	else
-	{
-	    $overlap = 0;
-	}
-    
-	return ( $overlap / $recordspan ) >= 0.5;
-    }
-    
-    # If the timerule is 'buffer', we can assume that the record overlaps the
-    # specified interval because the subservice call makes sure of that.  We
-    # simply need to make sure that it lies within the buffer region.
-    
-    elsif ( $timerule eq 'buffer' )
-    {
-	my $max_bound = $request->{my_max_age};
-	
-	if ( $max_bound )
-	{
-	    $max_bound *= 1000000 if defined $request->{my_max_unit} && 
-		$request->{my_max_unit} eq 'ma';
-	    
-	    $max_bound += $request->{my_old_buffer} if $request->{my_old_buffer};
-	    
-	    return unless $record->{age_older} <= $max_bound;
-	}
-	
-	my $min_bound = $request->{my_min_age};
-	
-	if ( $min_bound )
-	{
-	    $min_bound *= 1000000 if defined $request->{my_min_unit} &&
-		$request->{my_min_unit} eq 'ma';
-	    
-	    $min_bound -= $request->{my_young_buffer} if $request->{my_young_buffer};
-	    
-	    if ( $min_bound > 0 )
-	    {
-		return unless $record->{age_younger} >= $min_bound;
-	    }
-	}
-	
-	return 1;
-    }
-    
-    # For any other time rule, accept all records.
-    
-    else
-    {
-	return 1;
-    }
 }
 
 
@@ -898,9 +802,8 @@ sub process_age {
     {
 	$record->{AgeOlder} = $record->{max_ma};
 	$record->{AgeYounger} = $record->{min_ma};
-	$record->{YearsOlder} = $record->{max_ma} * 1E6 if $record->{max_ma};
-	$record->{YearsYounger} = $record->{min_ma} * 1E6 if $record->{min_ma};
-	$record->{AgeUnit} = 'Ma';
+	# $record->{YearsOlder} = $record->{max_ma} * 1E6 if $record->{max_ma};
+	# $record->{YearsYounger} = $record->{min_ma} * 1E6 if $record->{min_ma};
 	
 	if ( $request->clean_param('ageunit') eq 'ybp' )
 	{
@@ -908,12 +811,17 @@ sub process_age {
 	    $record->{AgeOlder} *= 1E6 if defined $record->{AgeOlder};
 	    $record->{AgeUnit} = 'ybp';
 	}
+
+	else
+	{
+	    $record->{AgeUnit} = 'Ma';
+	}
     }
     
     elsif ( $record->{OccurID} )
     {
-	$record->{YearsOlder} = $record->{AgeOlder};
-	$record->{YearsYounger} = $record->{AgeYounger};
+	# $record->{YearsOlder} = $record->{AgeOlder};
+	# $record->{YearsYounger} = $record->{AgeYounger};
 	
 	if ( $request->clean_param('ageunit') eq 'ma' )
 	{

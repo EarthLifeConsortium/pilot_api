@@ -222,22 +222,22 @@ sub init_occs_list {
     
     # Now check for time parameters
     
-    my $max_age = $request->{my_max_age};
-    my $max_ageunit = $request->{my_max_unit};
+    # my $max_age = $request->{my_max_ybp};
+    # my $max_ageunit = $request->{my_max_unit};
     
-    if ( $max_age )
+    if ( $request->{my_max_ybp} )
     {
-	$max_age *= 1000000 if defined $max_ageunit && $max_ageunit eq 'ma';
-	push @params, "ageold=$max_age";
+	# $max_age *= 1000000 if defined $max_ageunit && $max_ageunit eq 'ma';
+	push @params, url_param("ageold", $request->{my_max_ybp});
     }
     
-    my $min_age = $request->{my_min_age};
-    my $min_ageunit = $request->{my_min_unit};
+    # my $min_age = $request->{my_min_age};
+    # my $min_ageunit = $request->{my_min_unit};
     
-    if ( $min_age )
+    if ( $request->{my_min_ybp} )
     {
-	$min_age *= 1000000 if defined $min_ageunit && $min_ageunit eq 'ma';
-	push @params, "ageyoung=$min_age";
+	# $min_age *= 1000000 if defined $min_ageunit && $min_ageunit eq 'ma';
+	push @params, url_param("ageyoung", $request->{my_min_ybp});
     }
     
     # Make sure we have at least one parameter, so that we don't ask for the
@@ -275,7 +275,8 @@ sub init_occs_list {
     my $url = $request->ds->config_value('neotoma_base') . 'occurrences?';
     $url .= join('&', @params);
     
-    return $url;
+    $subquery->set_url($url);
+    $subquery->generate_parser();
 }
 
 
@@ -358,20 +359,22 @@ sub init_occs_single {
     # my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
     # 					      request => $request );
     
-    return $url;
+    $subquery->set_url($url);
+    $subquery->generate_parser();
 }
 
 
-sub process_occs_list {
+# sub process_occs_list {
     
-    my $subquery = shift;
+#     my $subquery = shift;
     
-    $subquery->process_json(@_);
+#     $subquery->process_json(@_);
     
-    my $count = scalar($subquery->records);
-    my $request = $subquery->request;
-        
-    # my $message = "Got NEOTOMA response chunk: $count records";
+#     my $count = scalar($subquery->records);
+#     my $request = $subquery->request;
+
+#     $subquery->debug("Got NEOTOMA response chunk: $count records");
+    
     # $message .= " $wcount warnings" if $wcount;
     # $message .= " STATUS $request->{status}" if $request->{status} && $request->{status} ne '200';
     
@@ -382,7 +385,7 @@ sub process_occs_list {
     # 	$request->add_warning(@warnings);
     # }
     
-    $request->{neotoma_count} += $count;
+    # $request->{neotoma_count} += $count;
     
     # Process the results and return them.
     
@@ -397,17 +400,229 @@ sub process_occs_list {
     
     # $subquery->process_records('process_neotoma_age', $ageunit);
     
-    if ( $request->{my_timerule} eq 'major' || $request->{my_timerule} eq 'buffer' )
+#     if ( $request->{my_timerule} eq 'major' || $request->{my_timerule} eq 'buffer' )
+#     {
+# 	# @records = grep { $request->time_filter($_) } @records;
+	
+# 	my $reduced_count = $subquery->filter_records( sub { $request->time_filter(@_) } );
+	
+# 	if ( $reduced_count < $count )
+# 	{
+# 	    my $diff = $count - $reduced_count;
+# 	    $subquery->{removed} += $diff;
+# 	}
+#     }
+# }
+
+
+# generate_parser ( request )
+# 
+# This method must return a parser object which will be used to parse the
+# subquery response, or else the undefined value if no parser is needed or
+# none is available.
+
+sub generate_parser {
+    
+    my ($subquery, $request) = @_;
+    
+    my $json_parser = JSON::SL->new(10);
+    $json_parser->set_jsonpointer(["/success", "/message", "/data/^"]);
+    
+    $subquery->set_parser($json_parser);
+}
+
+
+# process_occs_response ( body, headers )
+# 
+# This method does the primary decoding a of JSON-format response.  We need a
+# separate method in each subservice interface class, because each subservice
+# returns a particular data structure with particular keys to indicate data
+# records and error or warning messages.
+
+sub process_occs_response {
+    
+    my ($subquery, $body, $headers) = @_;
+    
+    # There is nothing to do unless we actually have a chunk of the response
+    # body to work with.
+    
+    return unless defined $body && $body ne '';
+    
+    # Grab the parser object, which was generated for this subrequest by the
+    # 'generate_parser' method above.  This is a streaming parser, so we can
+    # pass it the response body one chunk at a time.
+
+    my $request = $subquery->request;
+    my $parser = $subquery->parser;
+    
+    # Feed the response chunk we were given to the parser and extract a list
+    # of response parts that we are interested in.  If an error occurs, then add
+    # a warning message.
+    
+    my @extracted;
+    
+    try {
+        @extracted = $parser->feed(decode_utf8($body));
+    }
+    catch {
+	$subquery->debug($_);
+        $subquery->add_warning("could not decode JSON response");
+    };
+    
+    # Go through the list.  Everything under 'records:' is a data record.
+    # Anything under 'warnings:' or 'errors:' we treat as a warning message.
+    
+    foreach my $r (@extracted)
     {
-	# @records = grep { $request->time_filter($_) } @records;
-	
-	my $reduced_count = $subquery->filter_records( sub { $request->time_filter(@_) } );
-	
-	if ( $reduced_count < $count )
+	if ( $r->{Path} =~ /data/ )
 	{
-	    my $diff = $count - $reduced_count;
-	    $subquery->{removed} += $diff;
+	    my $record = $r->{Value};
+	    
+	    if ( $subquery->time_filter($request, $record) )
+	    {
+		$subquery->process_coords($record);
+		$subquery->add_record($record);
+	    }
+
+	    else
+	    {
+		$subquery->{removed}++;
+	    }
 	}
+	
+	elsif ( $r->{Path} =~ /success/ )
+	{
+	   $subquery->add_warning("Request failed") unless $r->{Value};
+	}
+	
+	elsif ( $r->{Path} =~ /message/ )
+	{
+	    $subquery->add_warning($r->{Value});
+	}
+    }
+}
+
+
+# time_filter ( )
+# 
+# Check to make sure that each record satisfies the specified timerule.  This
+# check only needs to be done if the timerule is 'major' (the default) or
+# 'buffer'.  Returns true if the record satisfies the rule, false otherwise.
+
+sub time_filter {
+    
+    my ($subquery, $request, $record) = @_;
+    
+    # If no timerule is given, then all records are ok.
+    
+    my $timerule = $request->{my_timerule};
+    
+    return 1 unless defined $timerule;
+    
+    # The check also applies only at least one non-zero age bound was specified.
+    
+    return 1 unless $request->{my_max_ybp} || $request->{my_min_ybp};
+    
+    # If the timerule was 'major', only accept the record if more than 50% of its
+    # age range overlaps the specified filter age range.
+    
+    if ( $timerule eq 'major' )
+    {
+	# my $recordspan = defined $record->{age_older} && defined $record->{age_younger} ?
+	#     $record->{age_older} - $record->{age_younger} : 0;
+
+	my $recordspan = $record->{AgeOlder} || 0;
+	$recordspan -= $record->{AgeYounger} if $record->{AgeYounger};
+	my $overlap;
+	
+	if ( $recordspan == 0 )
+	{
+	    return if $request->{my_max_ybp} && defined $record->{AgeOlder} &&
+		$record->{AgeOlder} > $request->{my_max_ybp};
+	    return if $request->{my_min_ybp} && defined $record->{AgeYounger} &&
+		$record->{AgeYounger} < $request->{my_min_ybp};
+	    return 1;
+	}
+	
+	elsif ( $request->{my_max_ybp} )
+	{
+	    return unless $record->{AgeOlder};
+	
+	    $record->{AgeYounger} ||= 0;
+	    $request->{my_min_ybp} ||= 0;
+	    
+	    if ( $record->{AgeOlder} > $request->{my_max_ybp} )
+	    {
+		if ( $record->{AgeYounger} < $request->{my_min_ybp} )
+		{
+		    $overlap = $request->{my_max_ybp} - $request->{my_min_ybp};
+		}
+	    
+		else
+		{
+		    $overlap = $request->{my_max_ybp} - $record->{AgeYounger};
+		}
+	    }
+	
+	    elsif ( $record->{AgeYounger} < $request->{my_min_ybp} )
+	    {
+		$overlap = $record->{AgeOlder} - $request->{my_min_ybp};
+	    }
+	
+	    else
+	    {
+		$overlap = $record->{AgeOlder} - $record->{AgeYounger};
+	    }
+	}
+    
+	elsif ( $record->{AgeOlder} > $request->{my_min_ybp} )
+	{
+	    $overlap = $record->{AgeOlder} - $request->{my_min_ybp};
+	}
+    
+	else
+	{
+	    $overlap = 0;
+	}
+    
+	return ( $overlap / $recordspan ) >= 0.5;
+    }
+    
+    # If the timerule is 'buffer', we can assume that the record overlaps the
+    # specified interval because the subservice call makes sure of that.  We
+    # simply need to make sure that it lies within the buffer region.
+    
+    elsif ( $timerule eq 'buffer' )
+    {
+	my $max_bound = $request->{my_max_ybp};
+	
+	if ( $max_bound )
+	{
+	    $max_bound += $request->{my_oldbuffer_ybp} if $request->{my_oldbuffer_ybp};
+	    
+	    return unless $record->{AgeOlder} <= $max_bound;
+	}
+	
+	my $min_bound = $request->{my_min_ybp};
+	
+	if ( $min_bound )
+	{
+	    $min_bound -= $request->{my_youngbuffer_ybp} if $request->{my_youngbuffer_ybp};
+	    
+	    if ( $min_bound > 0 )
+	    {
+		return unless $record->{AgeYounger} >= $min_bound;
+	    }
+	}
+	
+	return 1;
+    }
+    
+    # For any other time rule, accept all records.
+    
+    else
+    {
+	return 1;
     }
 }
 
@@ -439,7 +654,7 @@ my ($VALID_COORD) = qr{ ^ [-]? \d+ [.] \d* $ }xs;
 
 sub process_coords {
     
-    my ($request, $record) = @_;
+    my ($subquery, $record) = @_;
     
     # If we have two valid longitude coordinates, average them. Otherwise, use
     # the west if it is non-empty and the east one otherwise.
@@ -482,81 +697,6 @@ sub process_coords {
     {
 	$record->{lat} = $record->{LatitudeNorth};
     }   
-}
-
-
-# generate_parser ( request )
-# 
-# This method must return a parser object which will be used to parse the
-# subquery response, or else the undefined value if no parser is needed or
-# none is available.
-
-sub generate_parser {
-    
-    my ($subquery, $request) = @_;
-    
-    my $json_parser = JSON::SL->new(10);
-    $json_parser->set_jsonpointer(["/success", "/message", "/data/^"]);
-    
-    return $json_parser;
-}
-
-
-# process_json ( body, headers )
-# 
-# This method does the primary decoding a of JSON-format response.  We need a
-# separate method in each subservice interface class, because each subservice
-# returns a particular data structure with particular keys to indicate data
-# records and error or warning messages.
-
-sub process_json {
-    
-    my ($subquery, $body, $headers) = @_;
-    
-    # There is nothing to do unless we actually have a chunk of the response
-    # body to work with.
-    
-    return unless defined $body && $body ne '';
-    
-    # Grab the parser object, which was generated for this subrequest by the
-    # 'generate_parser' method above.  This is a streaming parser, so we can
-    # pass it the response body one chunk at a time.
-    
-    my $parser = $subquery->{parser};
-    
-    # Feed the response chunk we were given to the parser and extract a list
-    # of response parts that we are interested in.  If an error occurs, then add
-    # a warning message.
-    
-    my @extracted;
-    
-    try {
-        @extracted = $parser->feed(decode_utf8($body));
-    }
-    catch {
-        $subquery->add_warning("could not decode JSON response");
-    };
-    
-    # Go through the list.  Everything under 'records:' is a data record.
-    # Anything under 'warnings:' or 'errors:' we treat as a warning message.
-    
-    foreach my $r (@extracted)
-    {
-	if ( $r->{Path} =~ /data/ )
-	{
-	    $subquery->add_record($r->{Value});
-	}
-	
-	elsif ( $r->{Path} =~ /success/ )
-	{
-	   $subquery->add_warning("Request failed") unless $r->{Value};
-	}
-	
-	elsif ( $r->{Path} =~ /message/ )
-	{
-	    $subquery->add_warning($r->{Value});
-	}
-    }
 }
 
 1;

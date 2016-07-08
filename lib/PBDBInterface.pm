@@ -198,22 +198,22 @@ sub init_occs_list {
     
     # Now check for time parameters
     
-    my $max_age = $request->{my_max_age};
-    my $max_ageunit = $request->{my_max_unit};
+    # my $max_age = $request->{my_max_age};
+    # my $max_ageunit = $request->{my_max_unit};
     
-    if ( $max_age )
+    if ( $request->{my_max_ma} )
     {
-	$max_age /= 1000000 if defined $max_ageunit && $max_ageunit eq 'ybp';
-	push @params, "max_ma=$max_age";
+	# $max_age /= 1000000 if defined $max_ageunit && $max_ageunit eq 'ybp';
+	push @params, url_param("max_ma", $request->{my_max_ma});
     }
     
-    my $min_age = $request->{my_min_age};
-    my $min_ageunit = $request->{my_min_unit};
+    # my $min_age = $request->{my_min_age};
+    # my $min_ageunit = $request->{my_min_unit};
     
-    if ( $min_age )
+    if ( $request->{my_min_ma} )
     {
-	$min_age /= 1000000 if defined $min_ageunit && $min_ageunit eq 'ybp';
-	push @params, "min_ma=$min_age";
+	# $min_age /= 1000000 if defined $min_ageunit && $min_ageunit eq 'ybp';
+	push @params, url_param("min_ma", $request->{my_min_ma});
     }
     
     # Check that at least one parameter was given, so that we don't ask for the
@@ -232,32 +232,29 @@ sub init_occs_list {
     
     if ( $timerule eq 'overlap' || $timerule eq 'contain' )
     {
-	push @params, "timerule=$timerule";
+	push @params, url_param("timerule", $timerule);
     }
     
     elsif ( $timerule eq 'buffer' )
     {
-	push @params, "timerule=buffer";
+	push @params, url_param("timerule", 'buffer');
 	
-	my $oldbuffer = $request->{my_old_buffer};
-	my $youngbuffer = $request->{my_young_buffer};
-	my $range = $request->{my_age_range};
+	my $oldbuffer = $request->{my_oldbuffer_ma};
+	my $youngbuffer = $request->{my_youngbuffer_ma};
+	my $range = $request->{my_range_ma};
 	
 	if ( defined $oldbuffer && $oldbuffer ne '' )
 	{
-	    $oldbuffer /= 1000000;
+	    push @params, url_param("time_buffer", $oldbuffer);
 	}
 	
 	elsif ( $range )
 	{
-	    $oldbuffer = 0.2 * $range;
+	    push @params, url_param("time_buffer", 0.2 * $range);
 	}
-	
-	push @params, url_param("timebuffer", $oldbuffer);
 	
 	if ( defined $youngbuffer && $youngbuffer ne '' && $youngbuffer ne $oldbuffer )
 	{
-	    $youngbuffer /= 1000000;
 	    push @params, url_param("latebuffer", $youngbuffer);
 	}
     }
@@ -275,6 +272,17 @@ sub init_occs_list {
 	push @params, "show=coll";
     }
     
+    # Add a limit parameter, if given.  But if an offset was given too then we must fetch the
+    # entire result so that we can return the proper chunk from it.
+    
+    my $limit = $request->clean_param('limit');
+    my $offset = $request->clean_param('offset');
+    
+    if ( $limit && ! $offset )
+    {
+	push @params, "limit=$limit";
+    }
+    
     # Create the necessary objects to execute a query on the PaleoBioDB and
     # parse the results.
     
@@ -285,8 +293,9 @@ sub init_occs_list {
     
     my $url = $request->ds->config_value('pbdb_base') . 'occs/list.json?';
     $url .= join('&', @params);
-    
-    return $url;
+
+    $subquery->set_url($url);
+    $subquery->generate_parser();
 }
 
 
@@ -347,7 +356,7 @@ sub init_occs_single {
 	push @params, url_param("occ_id", $id_list);
     }
     
-    # Otherwise return false, since there will be no matching records from
+    # Otherwise return without setting a URL, since there will be no matching records from
     # the PaleoBioDB.
     
     else
@@ -380,48 +389,68 @@ sub init_occs_single {
     # my $subquery = $subservice->new_subquery( url => $url, parser => $json_parser,
     # 					      request => $request );
     
-    return $url;
+    $subquery->set_url($url);
+    $subquery->generate_parser();
 }
 
 
-sub process_occs_list {
-    
-    my $subquery = shift;
-    
-    $subquery->process_json(@_);
-    
-    my $count = scalar($subquery->records);
-    my $request = $subquery->request;
-    
-    # my $message = "Got PBDB response chunk: $count records";
-    # $message .= " $wcount warnings" if $wcount;
-    # $message .= " STATUS $subquery->{status}" if $subquery->{http_status} && $subquery->{status} ne '200';
-    
-    # $subquery->ds->debug_line($message);
-    
-    # if ( my @warnings = $subquery->warnings )
-    # {
-    # 	$request->add_warning(@warnings);
-    # }
-    
-    $request->{pbdb_count} += $count;
-    
-    # Process the results
-    
-    my $ageunit = $request->clean_param('ageunit');
-    
-    # $subquery->process_records('process_pbdb_age', $ageunit);
-    
-    # foreach my $r (@records)
-    # {
+# generate_parser ( request, format )
+# 
+# This method must return a parser object which will be used to parse the
+# subquery response, or else the undefined value if no parser is needed or
+# none is available.
 
-    # 	process_pbdb_age($request, $r, $ageunit);
-    # }
+sub generate_parser {
     
-    # return @records;
+    my ($subquery, $request) = @_;
     
-    my $a = 1;	# we can stop here when debugging
+    my $json_parser = JSON::SL->new(10);
+    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
+
+    $subquery->set_parser($json_parser);
+    
+    # return $json_parser;
 }
+
+
+# sub process_occs_list {
+    
+#     my $subquery = shift;
+    
+#     $subquery->process_json(@_);
+    
+#     my $count = scalar($subquery->records);
+#     my $request = $subquery->request;
+    
+#     # my $message = "Got PBDB response chunk: $count records";
+#     # $message .= " $wcount warnings" if $wcount;
+#     # $message .= " STATUS $subquery->{status}" if $subquery->{http_status} && $subquery->{status} ne '200';
+    
+#     # $subquery->ds->debug_line($message);
+    
+#     # if ( my @warnings = $subquery->warnings )
+#     # {
+#     # 	$request->add_warning(@warnings);
+#     # }
+    
+#     $request->{pbdb_count} += $count;
+    
+#     # Process the results
+    
+#     my $ageunit = $request->clean_param('ageunit');
+    
+#     # $subquery->process_records('process_pbdb_age', $ageunit);
+    
+#     # foreach my $r (@records)
+#     # {
+
+#     # 	process_pbdb_age($request, $r, $ageunit);
+#     # }
+    
+#     # return @records;
+    
+#     my $a = 1;	# we can stop here when debugging
+# }
 
 
 # sub process_occs_list {
@@ -513,31 +542,14 @@ sub process_pbdb_age {
 }
 
 
-# generate_parser ( request, format )
-# 
-# This method must return a parser object which will be used to parse the
-# subquery response, or else the undefined value if no parser is needed or
-# none is available.
-
-sub generate_parser {
-    
-    my ($subquery, $request) = @_;
-    
-    my $json_parser = JSON::SL->new(10);
-    $json_parser->set_jsonpointer(["/status_code", "/errors", "/warnings", "/records/^"]);
-    
-    return $json_parser;
-}
-
-
-# process_json ( body, headers )
+# process_occs_response ( body, headers )
 # 
 # This method does the primary decoding a of JSON-format response.  We need a
 # separate method in each subservice interface class, because each subservice
 # returns a particular data structure with particular keys to indicate data
 # records and error or warning messages.
 
-sub process_json {
+sub process_occs_response {
     
     my ($subquery, $body, $headers) = @_;
     
