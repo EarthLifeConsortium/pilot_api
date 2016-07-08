@@ -231,7 +231,7 @@ sub initialize {
 	    "Resolve temporal locality according to the specified rule, as listed below.  This",
 	    "rule is applied to determine which occurrences will be selected if",
 	    "you also specify an age range using any of the parameters listed immediately above.",
-	{ param => 'timebuffer', valid => ANY_VALUE },
+	{ param => 'timebuffer', alias => 'time_buffer', valid => ANY_VALUE },
 	    "The value of this parameter sets the size of the buffer when evaluating",
 	    "time range queries. It implicitly sets the timerule to C<buffer>, and is",
 	    "ignored if you specify any other value for the B<C<timerule>> parameter. You can",
@@ -645,7 +645,7 @@ sub time_params {
 		    $request->{my_youngbuffer_ybp} = $young / 100 * $request->{my_range_ybp};
 		}
 		
-		else
+		elsif ( $min_age_unit )
 		{
 		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young * 1E6;
 		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young / 1E6;
