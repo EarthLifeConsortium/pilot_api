@@ -635,8 +635,8 @@ sub time_params {
 		
 		else
 		{
-		    $request->{my_oldbuffer_ma} = $max_age_unit eq 'ma' ? $old : $old * 1E6;
-		    $request->{my_oldbuffer_ybp} = $max_age_unit eq 'ybp' ? $old : $old / 1E6;
+		    $request->{my_oldbuffer_ma} = $max_age_unit eq 'ma' ? $old : $old / 1E6;
+		    $request->{my_oldbuffer_ybp} = $max_age_unit eq 'ybp' ? $old : $old * 1E6;
 		}
 		
 		if ( $young_pct )
@@ -647,8 +647,8 @@ sub time_params {
 		
 		elsif ( $min_age_unit )
 		{
-		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young * 1E6;
-		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young / 1E6;
+		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young / 1E6;
+		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young * 1E6;
 		}
 	    }
 	    
@@ -662,8 +662,8 @@ sub time_params {
 		
 		else
 		{
-		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young * 1E6;
-		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young / 1E6;
+		    $request->{my_youngbuffer_ma} = $min_age_unit eq 'ma' ? $young : $young / 1E6;
+		    $request->{my_youngbuffer_ybp} = $min_age_unit eq 'ybp' ? $young : $young * 1E6;
 		}
 	    }
 	}
