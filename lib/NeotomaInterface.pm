@@ -245,7 +245,7 @@ sub init_occs_list {
     
     unless ( @params )
     {
-	die "400 You must specify at least one parameter";
+	die $request->exception("400", "Request is not specific enough");
     }
     
     # If the timerule is to be other than the default, add the necessary
@@ -257,9 +257,11 @@ sub init_occs_list {
     {
 	push @params, "agedocontain=0";
     }
-
-    # We need to add a clause to circumvent the default 500-record limit
-
+    
+    # We cannot pass on the 'limit' parameter, since we are forced to filter
+    # the result set after we get it from Neotoma.  But we need to get around
+    # the default 500-result limit.
+    
     push @params, "limit=999999";
     
     # Create the necessary objects to execute a query on the Neotoma database

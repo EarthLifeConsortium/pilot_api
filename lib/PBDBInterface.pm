@@ -83,9 +83,9 @@ sub init_occs_list {
 	my ($x1,$y1,$x2,$y2) = split(/,/, $bbox);
 	
 	push @params, url_param("lngmin", $x1);
-	push @params, url_param("lngmin", $x2);
-	push @params, url_param("lngmin", $y1);
-	push @params, url_param("lngmin", $y2);
+	push @params, url_param("latmin", $y1);
+	push @params, url_param("lngmax", $x2);
+	push @params, url_param("latmax", $y2);
     }
     
     if ( my @occ_ids = $request->clean_param_list('occ_id') )
