@@ -515,6 +515,19 @@ sub time_filter {
     
     my ($subquery, $request, $record) = @_;
     
+	  # If Age is given but not AgeOlder or AgeYounger, set both of the
+	  # latter to the value of Age.
+	  
+    if ( defined $record->{Age} && ! defined $record->{AgeOlder} )
+    {
+				$record->{AgeOlder} = $record->{Age};
+    }
+	  
+    if ( defined $record->{Age} && ! defined $record->{AgeYounger} )
+    {
+				$record->{AgeYounger} = $record->{Age};
+    }
+    
     # If no timerule is given, then all records are ok.
     
     my $timerule = $request->{my_timerule};
