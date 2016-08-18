@@ -7,10 +7,10 @@ A place holder for the earthlife joint API.
 *We welcome contributions from any individual, whether code, documentation, or issue tracking.  All participants are expected to follow the [code of conduct](conduct.md) for this project.*
 
 
-* Michael M
-* Julian Jenkins
-* Mike Anderson
-* Simon Goring
+* Michael McClennen - University of Wisconsin - Madison
+* Julian Jenkins - George Mason University
+* Mike Anderson - SpatialIT
+* [Simon Goring](http://github.com/SimonGoring) - University of Wisconsin - Madison
 
 # Examples
 
