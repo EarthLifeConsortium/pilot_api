@@ -879,7 +879,7 @@ sub valid_bbox {
     
     unless ( @coords == 4 )
     {
-	return { error => "the value of {param} must contain four decimal coordinates: w,s,n,e" };
+	return { error => "the value of {param} must contain four decimal coordinates: w,s,e,n" };
     }
     
     foreach my $coord ( @coords )
@@ -888,6 +888,21 @@ sub valid_bbox {
 	{
 	    return { error => "invalid coordinate '$coord' in {param}" };
 	}
+    }
+    
+    if ( $coords[1] < -90 || $coords[1] > 90 || $coords[3] < -90 || $coords[3] > 90 )
+    {
+	return { error => "the latitude coordinates must be in the range -90.0 through 90.0" };
+    }
+    
+    if ( $coords[1] >= $coords[3] )
+    {
+	return { error => "the first latitude coordinate must be less than the second" };
+    }
+    
+    if ( $coords[0] < -180 || $coords[0] > 180 || $coords[2] < -180 || $coords[2] > 180 )
+    {
+	return { error => "the longitude coordinates must be in the range -180.0 through 180.0" };
     }
     
     return { value => join(',', @coords) };
